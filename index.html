@@ -993,7 +993,8 @@
             // instructionText removido - agora usando sistema de toast
             let geolocationWatchId = null;
             let currentLocation = null;
-            let locationUnlocked = [false, false, false, false, false, false, false]; // Controla se cada localização foi desbloqueada
+            let locationUnlocked = [false, false, false, false, false, false, false];
+let isInGameCall = false;  // Nova flag global // Controla se cada localização foi desbloqueada
 
             // Coordenadas dos objetos (latitude, longitude)
             const objectLocations = [
@@ -1053,17 +1054,24 @@
             // Pré-carregar áudio quando a página carregar
             setTimeout(preloadDustinAudio, 2000);
 
-            function showDustinCall() {
-                loadingScreen.classList.add('hidden');
-                callScreen.classList.remove('hidden');
+            function showDustinCall(inGame = false) {
+    if (inGame) {
+        isInGameCall = true;
+        // Esconder elementos do jogo temporariamente
+        document.getElementById('backpack-icon').style.display = 'none';
+        sceneEl.style.display = 'none';  // Esconder cena AR
+    } else {
+        loadingScreen.classList.add('hidden');
+    }
+    callScreen.classList.remove('hidden');
 
-                // Iniciar vibração de ligação recebida
-                startIncomingCallEffects();
+    // Iniciar vibração de ligação recebida
+    startIncomingCallEffects();
 
-                // Configurar eventos dos botões
-                answerButton.addEventListener('click', answerCall);
-                declineButton.addEventListener('click', declineCall);
-            }
+    // Configurar eventos dos botões
+    answerButton.addEventListener('click', answerCall);
+    declineButton.addEventListener('click', declineCall);
+}
 
             function startIncomingCallEffects() {
                 // Padrão de vibração para ligação recebida (vibra, pausa, vibra, pausa longa)
@@ -1324,41 +1332,50 @@
             }
 
             function endCall() {
-                console.log('endCall() chamada');
+    console.log('endCall() chamada');
 
-                // Parar todos os efeitos
-                stopIncomingCallEffects();
-                stopCallTimer();
+    // Parar todos os efeitos
+    stopIncomingCallEffects();
+    stopCallTimer();
 
-                // Parar áudio se estiver tocando
-                if (dustinAudio) {
-                    dustinAudio.pause();
-                    dustinAudio = null;
-                }
+    // Parar áudio se estiver tocando
+    if (dustinAudio) {
+        dustinAudio.pause();
+        dustinAudio = null;
+    }
 
-                // Remover classe de chamada ativa
-                callScreen.classList.remove('call-active');
+    // Remover classe de chamada ativa
+    callScreen.classList.remove('call-active');
 
-                // Esconder tela de ligação e mostrar tela de carregamento
-                callScreen.classList.add('hidden');
-                loadingScreen.classList.remove('hidden');
+    // Esconder tela de ligação
+    callScreen.classList.add('hidden');
 
-                // Resetar elementos da interface
-                callTimer.style.display = 'none';
-                document.getElementById('call-buttons').style.display = 'flex';
-                answerButton.classList.add('calling-animation');
+    if (isInGameCall) {
+        // Retornar ao AR: mostrar elementos do jogo
+        document.getElementById('backpack-icon').style.display = 'flex';
+        sceneEl.style.display = 'block';  // Assumindo que sceneEl é o elemento da cena AR
+        isInGameCall = false;
+    } else {
+        // Comportamento original para ligação inicial
+        loadingScreen.classList.remove('hidden');
 
-                // Configurar botão para iniciar AR
-                buttonState = 'start-ar';
-                loadingInfo.innerText = "Clique para iniciar a experiência AR";
-                enterButton.style.display = 'block';
-                enterButton.innerText = "Iniciar AR";
+        // Configurar botão para iniciar AR
+        buttonState = 'start-ar';
+        loadingInfo.innerText = "Clique para iniciar a experiência AR";
+        enterButton.style.display = 'block';
+        enterButton.innerText = "Iniciar AR";
 
-                console.log('Estado do botão:', buttonState);
-                console.log('Texto do botão:', enterButton.innerText);
+        console.log('Estado do botão:', buttonState);
+        console.log('Texto do botão:', enterButton.innerText);
 
-                console.log('Botão configurado como:', enterButton.innerText);
-            }
+        console.log('Botão configurado como:', enterButton.innerText);
+    }
+
+    // Resetar elementos da interface
+    callTimer.style.display = 'none';
+    document.getElementById('call-buttons').style.display = 'flex';
+    answerButton.classList.add('calling-animation');
+}
 
 
 
@@ -2158,32 +2175,37 @@
                 // Atualizar conteúdo da mochila
                 updateBackpackContent();
 
-                // Preparar para o próximo objeto
-                currentObjectIndex++;
-                currentObjectPlaced = false;
+    // Nova adição: se for walkie-talkie, mostrar ligação do Dustin
+    if (id === 'walkie-talkie') {
+        showDustinCall(true);  // Chamar com flag inGame=true
+    }
 
-                // Atualizar variáveis globais
-                window.currentObjectIndex = currentObjectIndex;
-                window.currentObjectPlaced = false;
+    // Preparar para o próximo objeto
+    currentObjectIndex++;
+    currentObjectPlaced = false;
 
-                if (currentObjectIndex < objectsToPlace.length) {
-                    // Ainda há objetos para colocar
-                    const nextObjectId = objectsToPlace[currentObjectIndex];
-                    const nextObjectName = getObjectName(nextObjectId);
-                    showToast(`Ótimo! Agora vá até a localização de ${nextObjectName}`, 'info');
+    // Atualizar variáveis globais
+    window.currentObjectIndex = currentObjectIndex;
+    window.currentObjectPlaced = false;
 
-                    // Resetar flags para o próximo objeto
-                    canPlace = false;
+    if (currentObjectIndex < objectsToPlace.length) {
+        // Ainda há objetos para colocar
+        const nextObjectId = objectsToPlace[currentObjectIndex];
+        const nextObjectName = getObjectName(nextObjectId);
+        showToast(`Ótimo! Agora vá até a localização de ${nextObjectName}`, 'info');
 
-                    // Verificar se já está perto da próxima localização
-                    setTimeout(() => {
-                        checkProximityToLocations();
-                    }, 1500);
-                } else {
-                    // Todos os objetos foram coletados
-                    showVictoryScreen();
-                }
-            }
+        // Resetar flags para o próximo objeto
+        canPlace = false;
+
+        // Verificar se já está perto da próxima localização
+        setTimeout(() => {
+            checkProximityToLocations();
+        }, 1500);
+    } else {
+        // Todos os objetos foram coletados
+        showVictoryScreen();
+    }
+}
 
             function showVictoryScreen() {
                 // Parar monitoramento de geolocalização
