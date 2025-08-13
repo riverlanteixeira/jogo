@@ -1,0 +1,2204 @@
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Stranger Things AR - Caça aos Objetos</title>
+    <meta name="description" content="Descubra os objetos que aparecem no seu mundo">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <!-- A-Frame -->
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <!-- Three.js já está incluído no A-Frame, mas vamos garantir acesso global -->
+    <script>
+        // Garantir que THREE esteja disponível globalmente
+        window.THREE = window.THREE || AFRAME.THREE;
+    </script>
+
+    <style>
+        html,
+        body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .ui-element {
+            pointer-events: auto;
+        }
+
+        .ui-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            color: #fff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 0.5s ease-out;
+        }
+
+        .ui-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #logo {
+            width: 80%;
+            max-width: 400px;
+            margin-bottom: 30px;
+        }
+
+        #progress-bar-container {
+            width: 70%;
+            max-width: 350px;
+            height: 20px;
+            border: 2px solid #e72626;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        #progress-bar {
+            width: 0%;
+            height: 100%;
+            background-color: #e72626;
+            transition: width 0.4s ease-in-out;
+        }
+
+        #loading-info {
+            font-size: 1em;
+            color: #ccc;
+            height: 40px;
+            margin-top: 10px;
+            text-align: center;
+            padding: 0 15px;
+        }
+
+        #enter-button {
+            display: none;
+            /* Começa escondido */
+            margin-top: 40px;
+            padding: 15px 30px;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #fff;
+            background-color: #e72626;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        /* Ícone da mochila */
+        #backpack-icon {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #8B4513 0%, #A0522D 100%);
+            border-radius: 15px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+            color: #fff;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+            z-index: 15;
+            border: 2px solid #654321;
+        }
+
+        #backpack-icon:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        }
+
+        #backpack-icon:active {
+            transform: scale(0.95);
+        }
+
+        /* Badge de contador */
+        #backpack-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #e72626;
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8em;
+            font-weight: bold;
+            border: 2px solid #fff;
+        }
+
+        /* Modal da mochila */
+        #backpack-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+            backdrop-filter: blur(5px);
+        }
+
+        #backpack-content {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            border-radius: 15px;
+            padding: 25px;
+            max-width: 90%;
+            max-height: 80%;
+            overflow-y: auto;
+            border: 2px solid #e72626;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            color: #fff;
+            position: relative;
+        }
+
+        #backpack-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #e72626;
+        }
+
+        #backpack-title {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #close-backpack {
+            background: #e72626;
+            border: none;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        #close-backpack:hover {
+            background: #d32f2f;
+            transform: scale(1.1);
+        }
+
+        #collectibles-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        #collectibles-list li {
+            padding: 12px 15px;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #collectibles-list li.found {
+            background: rgba(76, 175, 80, 0.2);
+            border-left-color: #4CAF50;
+            color: #a5d6a7;
+        }
+
+        #collectibles-list li:not(.found) {
+            border-left-color: #e72626;
+        }
+
+        #collectibles-list li .item-status {
+            margin-left: auto;
+            font-size: 1.2em;
+        }
+
+        #location-info {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(231, 38, 38, 0.2);
+            border-radius: 10px;
+            font-size: 0.9em;
+            border: 1px solid #e72626;
+        }
+
+        #progress-info {
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+            color: #ccc;
+        }
+
+        #progress-bar-game {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        #progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #e72626 0%, #ff4444 100%);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        /* Medidor de distância na tela principal */
+        #distance-meter {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 15;
+            background: rgba(0, 0, 0, 0.9);
+            color: #fff;
+            padding: 15px 25px;
+            border-radius: 30px;
+            border: 2px solid #e72626;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            font-size: 1.1em;
+            text-align: center;
+            backdrop-filter: blur(15px);
+            display: none;
+            min-width: 250px;
+            max-width: 90vw;
+            transition: all 0.3s ease;
+        }
+
+        #distance-meter.show {
+            display: block;
+        }
+
+        #distance-meter .distance-icon {
+            font-size: 1.2em;
+            margin-right: 8px;
+        }
+
+        #distance-meter .distance-text {
+            font-weight: bold;
+        }
+
+        #distance-meter.unlocked {
+            border-color: #4CAF50;
+            background: rgba(76, 175, 80, 0.2);
+        }
+
+        #distance-meter.unlocked .distance-icon {
+            color: #4CAF50;
+        }
+
+        /* Sistema de notificações toast */
+        #toast-container {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 25;
+            pointer-events: none;
+        }
+
+        .toast {
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 25px;
+            margin-bottom: 10px;
+            border: 2px solid #e72626;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            max-width: 80vw;
+            text-align: center;
+            font-size: 1em;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast.success {
+            border-color: #4CAF50;
+            background: rgba(76, 175, 80, 0.2);
+        }
+
+        .toast.warning {
+            border-color: #ff9800;
+            background: rgba(255, 152, 0, 0.2);
+        }
+
+        /* Animação para objetos colecionáveis */
+        @keyframes collectible-pulse {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.1);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .collectible-ready {
+            animation: collectible-pulse 2s ease-in-out infinite;
+        }
+
+        /* Animação de destaque quando o jogador erra o clique */
+        @keyframes collectible-highlight {
+
+            0%,
+            100% {
+                transform: scale(1);
+                filter: brightness(1);
+            }
+
+            25% {
+                transform: scale(1.15);
+                filter: brightness(1.5);
+            }
+
+            50% {
+                transform: scale(1.1);
+                filter: brightness(1.3);
+            }
+
+            75% {
+                transform: scale(1.15);
+                filter: brightness(1.5);
+            }
+        }
+
+        .collectible-highlight {
+            animation: collectible-highlight 0.8s ease-in-out;
+        }
+
+        #victory-screen h1 {
+            font-size: 2.5em;
+            color: #e72626;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+
+        #victory-screen p {
+            font-size: 1.2em;
+        }
+
+        /* Esconder completamente o botão VR do A-Frame */
+        .a-enter-vr-button,
+        .a-enter-ar-button,
+        .a-vr-mode-ui {
+            display: none !important;
+            visibility: hidden !important;
+        }
+
+        /* Tela de ligação do Dustin */
+        #call-screen {
+            background: linear-gradient(180deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Efeito de fundo animado */
+        #call-screen::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(231, 38, 38, 0.1) 0%, transparent 70%);
+            animation: rotate 20s linear infinite;
+        }
+
+        /* Status bar da ligação */
+        #call-status-bar {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            color: #fff;
+            border: 1px solid #333;
+        }
+
+        /* Container principal da ligação */
+        #call-content {
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            padding: 40px 20px;
+        }
+
+        #dustin-avatar {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            border: 6px solid #e72626;
+            margin-bottom: 30px;
+            box-shadow:
+                0 0 40px rgba(231, 38, 38, 0.6),
+                0 0 80px rgba(231, 38, 38, 0.3),
+                inset 0 0 20px rgba(0, 0, 0, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Efeito de ondas no avatar */
+        #dustin-avatar::before {
+            content: '';
+            position: absolute;
+            top: -6px;
+            left: -6px;
+            right: -6px;
+            bottom: -6px;
+            border-radius: 50%;
+            border: 3px solid rgba(231, 38, 38, 0.5);
+            animation: ripple 2s infinite;
+        }
+
+        #dustin-avatar::after {
+            content: '';
+            position: absolute;
+            top: -12px;
+            left: -12px;
+            right: -12px;
+            bottom: -12px;
+            border-radius: 50%;
+            border: 2px solid rgba(231, 38, 38, 0.3);
+            animation: ripple 2s infinite 0.5s;
+        }
+
+        #caller-name {
+            font-size: 2.2em;
+            font-weight: 300;
+            margin-bottom: 8px;
+            color: #fff;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+            letter-spacing: 1px;
+        }
+
+        #caller-subtitle {
+            font-size: 1em;
+            color: #888;
+            margin-bottom: 15px;
+            font-weight: 300;
+        }
+
+        #call-status {
+            font-size: 1.1em;
+            color: #e72626;
+            margin-bottom: 60px;
+            text-align: center;
+            font-weight: 400;
+            animation: blink 1.5s infinite;
+        }
+
+        /* Timer da ligação */
+        #call-timer {
+            font-size: 1.2em;
+            color: #fff;
+            margin-bottom: 40px;
+            font-family: 'Courier New', monospace;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 20px;
+            border-radius: 20px;
+            border: 1px solid #333;
+            display: none;
+        }
+
+        #call-buttons {
+            display: flex;
+            gap: 80px;
+            align-items: center;
+            margin-top: auto;
+        }
+
+        .call-button {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.2em;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .call-button:active {
+            transform: scale(0.95);
+        }
+
+        #answer-button {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+            color: white;
+            box-shadow:
+                0 4px 20px rgba(76, 175, 80, 0.4),
+                0 0 30px rgba(76, 175, 80, 0.2);
+        }
+
+        #answer-button:hover {
+            box-shadow:
+                0 6px 25px rgba(76, 175, 80, 0.5),
+                0 0 40px rgba(76, 175, 80, 0.3);
+            transform: translateY(-2px);
+        }
+
+        #decline-button {
+            background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+            color: white;
+            box-shadow:
+                0 4px 20px rgba(244, 67, 54, 0.4),
+                0 0 30px rgba(244, 67, 54, 0.2);
+        }
+
+        #decline-button:hover {
+            box-shadow:
+                0 6px 25px rgba(244, 67, 54, 0.5),
+                0 0 40px rgba(244, 67, 54, 0.3);
+            transform: translateY(-2px);
+        }
+
+        /* Animações */
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.08);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        @keyframes ripple {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1.3);
+                opacity: 0;
+            }
+        }
+
+        @keyframes rotate {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes blink {
+
+            0%,
+            50% {
+                opacity: 1;
+            }
+
+            51%,
+            100% {
+                opacity: 0.6;
+            }
+        }
+
+        .calling-animation {
+            animation: pulse 1.2s infinite ease-in-out;
+        }
+
+        /* Efeito de ondas durante a ligação */
+        .call-active #dustin-avatar {
+            animation: pulse 2s infinite ease-in-out;
+        }
+
+        /* Indicadores visuais */
+        .signal-bars {
+            position: absolute;
+            top: 25px;
+            right: 25px;
+            display: flex;
+            gap: 3px;
+            align-items: flex-end;
+        }
+
+        .signal-bar {
+            width: 4px;
+            background: #4CAF50;
+            border-radius: 2px;
+            animation: signal 1.5s infinite;
+        }
+
+        .signal-bar:nth-child(1) {
+            height: 8px;
+            animation-delay: 0s;
+        }
+
+        .signal-bar:nth-child(2) {
+            height: 12px;
+            animation-delay: 0.2s;
+        }
+
+        .signal-bar:nth-child(3) {
+            height: 16px;
+            animation-delay: 0.4s;
+        }
+
+        .signal-bar:nth-child(4) {
+            height: 20px;
+            animation-delay: 0.6s;
+        }
+
+        @keyframes signal {
+
+            0%,
+            100% {
+                opacity: 0.3;
+            }
+
+            50% {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- A-Frame Scene com Hit-Test -->
+    <a-scene id="ar-scene"
+        webxr="requiredFeatures: hit-test, local-floor; optionalFeatures: dom-overlay; overlayElement: #overlay;"
+        vr-mode-ui="enabled: false;" renderer="logarithmicDepthBuffer: true; colorManagement: true;"
+        background="color: transparent;">
+        <a-assets>
+            <a-asset-item id="bike-model" src="assets/models/bicicleta-will.glb"></a-asset-item>
+            <a-asset-item id="compass-model" src="assets/models/compass.glb"></a-asset-item>
+            <a-asset-item id="baseball-bat-model" src="assets/models/baseball_bat.glb"></a-asset-item>
+            <a-asset-item id="machado-model" src="assets/models/machado.glb"></a-asset-item>
+            <a-asset-item id="walkie-talkie-model" src="assets/models/walkie_talkie.glb"></a-asset-item>
+            <a-asset-item id="demogorgon-model" src="assets/models/demogorgon.glb"></a-asset-item>
+            <a-asset-item id="will-mundo-invertido-model"
+                src="assets/models/will_byers_mundo_invertido.glb"></a-asset-item>
+        </a-assets>
+
+        <!-- Iluminação da Cena -->
+        <a-light type="ambient" color="#FFF" intensity="0.7"></a-light>
+        <a-light type="directional" color="#FFF" intensity="0.8" position="-1 2 1"></a-light>
+
+        <a-camera fov="80">
+            <a-cursor id="cursor"
+                animation__click="property: scale; startEvents: click; easing: easeInCubic; dur: 150; from: 0.1 0.1 0.1; to: 1 1 1"
+                animation__fusing="property: scale; startEvents: fusing; easing: easeInCubic; dur: 1500; from: 1 1 1; to: 0.1 0.1 0.1"
+                geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03" material="color: #e72626; shader: flat"
+                raycaster="objects: .collectible" visible="false">
+            </a-cursor>
+        </a-camera>
+
+        <!-- Retícula (Anel) - agora apenas um indicador visual -->
+        <a-entity id="reticle" visible="false" geometry="primitive: ring; radius-inner: 0.05; radius-outer: 0.1;"
+            material="color: #e72626; shader: flat;"></a-entity>
+
+        <!-- Entidades colecionáveis -->
+        <a-entity id="bike" class="collectible" gltf-model="#bike-model" collectible-object visible="false"></a-entity>
+        <a-entity id="compass" class="collectible" gltf-model="#compass-model" collectible-object
+            visible="false"></a-entity>
+        <a-entity id="baseball-bat" class="collectible" gltf-model="#baseball-bat-model" collectible-object
+            visible="false"></a-entity>
+        <a-entity id="machado" class="collectible" gltf-model="#machado-model" collectible-object
+            visible="false"></a-entity>
+        <a-entity id="walkie-talkie" class="collectible" gltf-model="#walkie-talkie-model" collectible-object
+            visible="false"></a-entity>
+        <a-entity id="demogorgon" class="collectible" gltf-model="#demogorgon-model" collectible-object
+            visible="false"></a-entity>
+        <a-entity id="will-mundo-invertido" class="collectible" gltf-model="#will-mundo-invertido-model"
+            collectible-object visible="false"></a-entity>
+    </a-scene>
+
+
+
+    <!-- UI Overlay -->
+    <div id="overlay">
+        <div id="loading-screen" class="ui-screen ui-element">
+            <img id="logo" src="assets/img/stranger-things-logo.png" alt="Stranger Things Logo">
+            <div id="progress-bar-container">
+                <div id="progress-bar"></div>
+            </div>
+            <p id="loading-info">Carregando assets...</p>
+
+            <button id="enter-button" class="ui-element">Entrar no Mundo Invertido</button>
+        </div>
+
+        <!-- Ícone da mochila -->
+        <div id="backpack-icon" class="ui-element">
+            🎒
+            <div id="backpack-badge">0/7</div>
+        </div>
+
+        <!-- Modal da mochila -->
+        <div id="backpack-modal" class="ui-element">
+            <div id="backpack-content">
+                <div id="backpack-header">
+                    <div id="backpack-title">
+                        🎒 Mochila de Itens
+                    </div>
+                    <button id="close-backpack">✕</button>
+                </div>
+
+                <div id="progress-info">
+                    <span id="progress-text">0 de 7 itens coletados</span>
+                </div>
+                <div id="progress-bar-game">
+                    <div id="progress-fill"></div>
+                </div>
+
+                <ul id="collectibles-list">
+                    <li data-item="walkie-talkie">
+                        � Walikie-Talkie
+                        <span class="item-status">❌</span>
+                    </li>
+                    <li data-item="bike">
+                        🚲 Bicicleta
+                        <span class="item-status">❌</span>
+                    </li>
+                    <li data-item="compass">
+                        🧭 Bússola
+                        <span class="item-status">❌</span>
+                    </li>
+                    <li data-item="baseball-bat">
+                        ⚾ Taco de Baseball
+                        <span class="item-status">❌</span>
+                    </li>
+                    <li data-item="machado">
+                        🪓 Machado
+                        <span class="item-status">❌</span>
+                    </li>
+                    <li data-item="demogorgon">
+                        👹 Demogorgon
+                        <span class="item-status">❌</span>
+                    </li>
+                    <li data-item="will-mundo-invertido">
+                        👦 Will (Mundo Invertido)
+                        <span class="item-status">❌</span>
+                    </li>
+                </ul>
+
+                <div id="location-info">
+                    <strong>📍 Localização Atual:</strong><br>
+                    <span id="location-status">Aguardando GPS...</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="call-screen" class="ui-screen ui-element hidden">
+            <div id="call-status-bar">📱 Ligação recebida</div>
+
+            <div class="signal-bars">
+                <div class="signal-bar"></div>
+                <div class="signal-bar"></div>
+                <div class="signal-bar"></div>
+                <div class="signal-bar"></div>
+            </div>
+
+            <div id="call-content">
+                <img id="dustin-avatar" src="assets/img/dustin.png" alt="Dustin Henderson">
+                <div id="caller-name">Dustin Henderson</div>
+                <div id="caller-subtitle">Hawkins, Indiana</div>
+                <div id="call-status">Chamada recebida...</div>
+                <div id="call-timer">00:00</div>
+
+                <div id="call-buttons">
+                    <button id="decline-button" class="call-button ui-element">✖</button>
+                    <button id="answer-button" class="call-button ui-element calling-animation">📞</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="victory-screen" class="ui-screen ui-element hidden">
+            <h1>Você Conseguiu!</h1>
+            <p>Todos os itens foram encontrados.</p>
+        </div>
+
+        <!-- Medidor de distância na tela principal -->
+        <div id="distance-meter">
+            <span class="distance-icon">🎯</span>
+            <span class="distance-text" id="distance-text">Aguardando GPS...</span>
+        </div>
+
+        <!-- Container de notificações toast -->
+        <div id="toast-container"></div>
+
+        <!-- Botão de debug temporário -->
+        <button id="debug-collect"
+            style="position: fixed; bottom: 20px; right: 20px; z-index: 30; padding: 10px; background: #ff0000; color: white; border: none; border-radius: 5px; display: none;">
+            Coletar Item (Debug)
+        </button>
+    </div>
+
+    <script>
+        // Componente A-Frame para objetos colecionáveis
+        AFRAME.registerComponent('collectible-object', {
+            init: function () {
+                console.log('Inicializando componente collectible-object para:', this.el.id);
+
+                // Múltiplos eventos para garantir detecção
+                const events = ['click', 'touchstart', 'mousedown'];
+
+                events.forEach(eventType => {
+                    this.el.addEventListener(eventType, (event) => {
+                        event.stopPropagation();
+                        event.preventDefault();
+                        console.log(`Evento ${eventType} detectado no objeto:`, this.el.id);
+
+                        // Disparar evento customizado
+                        this.el.dispatchEvent(new CustomEvent('object-clicked', {
+                            detail: { objectId: this.el.id, eventType: eventType }
+                        }));
+                    });
+                });
+
+                // Eventos do cursor A-Frame
+                this.el.addEventListener('mouseenter', () => {
+                    console.log('Mouse enter no objeto:', this.el.id);
+                    document.body.style.cursor = 'pointer';
+
+                    // Mostrar cursor A-Frame quando sobre objeto coletável
+                    const cursor = document.getElementById('cursor');
+                    if (cursor && this.isCurrentCollectible()) {
+                        cursor.setAttribute('visible', true);
+                    }
+                });
+
+                this.el.addEventListener('mouseleave', () => {
+                    console.log('Mouse leave no objeto:', this.el.id);
+                    document.body.style.cursor = 'default';
+
+                    // Esconder cursor A-Frame
+                    const cursor = document.getElementById('cursor');
+                    if (cursor) {
+                        cursor.setAttribute('visible', false);
+                    }
+                });
+
+                // Evento específico do cursor A-Frame
+                this.el.addEventListener('raycaster-intersected', () => {
+                    console.log('Raycaster intersected:', this.el.id);
+                });
+
+                this.el.addEventListener('raycaster-intersected-cleared', () => {
+                    console.log('Raycaster cleared:', this.el.id);
+                });
+            },
+
+            isCurrentCollectible: function () {
+                // Verificar se este é o objeto atual que pode ser coletado
+                return window.currentObjectPlaced &&
+                    window.currentObjectIndex < window.objectsToPlace.length &&
+                    window.objectsToPlace[window.currentObjectIndex] === this.el.id;
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const sceneEl = document.getElementById('ar-scene');
+            const loadingScreen = document.getElementById('loading-screen');
+            const enterButton = document.getElementById('enter-button');
+            const loadingInfo = document.getElementById('loading-info');
+            const progressBar = document.getElementById('progress-bar');
+            // gameUi removido - agora usando modal da mochila
+            const victoryScreen = document.getElementById('victory-screen');
+            const reticle = document.getElementById('reticle');
+
+
+            const collectibles = {
+                bike: false,
+                compass: false,
+                'baseball-bat': false,
+                machado: false,
+                'walkie-talkie': false,
+                demogorgon: false,
+                'will-mundo-invertido': false
+            };
+            let foundCollectibles = 0;
+            const objectsToPlace = ['walkie-talkie', 'bike', 'compass', 'baseball-bat', 'machado', 'demogorgon', 'will-mundo-invertido'];
+            let currentObjectIndex = 0;
+            let currentObjectPlaced = false;
+
+            // Tornar variáveis acessíveis globalmente para o componente A-Frame
+            window.objectsToPlace = objectsToPlace;
+            window.currentObjectIndex = currentObjectIndex;
+            window.currentObjectPlaced = currentObjectPlaced;
+            let canPlace = false; // Inicialmente false até chegar na localização
+            let hitTestSource = null;
+            // instructionText removido - agora usando sistema de toast
+            let geolocationWatchId = null;
+            let currentLocation = null;
+            let locationUnlocked = [false, false, false, false, false, false, false]; // Controla se cada localização foi desbloqueada
+
+            // Coordenadas dos objetos (latitude, longitude)
+            const objectLocations = [
+                { lat: -27.639820466982767, lng: -48.66781802715769, name: 'Walkie-Talkie' },
+                { lat: -27.639820466982767, lng: -48.66781802715769, name: 'Bicicleta' },
+                { lat: -27.63925124643027, lng: -48.66848300058835, name: 'Bússola' },
+                { lat: -27.639820466982767, lng: -48.66781802715769, name: 'Taco de Baseball' },
+                { lat: -27.639820466982767, lng: -48.66781802715769, name: 'Machado' },
+                { lat: -27.639820466982767, lng: -48.66781802715769, name: 'Demogorgon' },
+                { lat: -27.639820466982767, lng: -48.66781802715769, name: 'Will (Mundo Invertido)' }
+            ];
+
+            const PROXIMITY_RADIUS = 10; // 10 metros
+
+            function simulateLoading() {
+                let progress = 0;
+                const interval = setInterval(() => {
+                    progress += 25;
+                    progressBar.style.width = progress + '%';
+                    if (progress >= 100) {
+                        clearInterval(interval);
+                        loadingInfo.innerText = "Pronto para iniciar!";
+                        document.getElementById('progress-bar-container').style.display = 'none';
+
+                        // Mostrar botão de entrar
+                        enterButton.style.display = 'block';
+                    }
+                }, 300);
+            }
+
+
+
+            // Elementos da ligação
+            const callScreen = document.getElementById('call-screen');
+            const answerButton = document.getElementById('answer-button');
+            const declineButton = document.getElementById('decline-button');
+            const callTimer = document.getElementById('call-timer');
+            const callStatus = document.getElementById('call-status');
+            let dustinAudio = null;
+            let callStartTime = null;
+            let callTimerInterval = null;
+            let vibrationInterval = null;
+            let ringtonePlaying = false;
+
+            // Estado do botão para evitar problemas com texto
+            let buttonState = 'initial'; // 'initial', 'start-ar', 'skip-call', 'retry'
+
+            // Pré-carregar áudio do Dustin para evitar atrasos
+            let preloadedAudio = null;
+            function preloadDustinAudio() {
+                preloadedAudio = new Audio('assets/audio/dustin-missao-1.mp3');
+                preloadedAudio.preload = 'auto';
+                preloadedAudio.volume = 0.8;
+                console.log('Áudio do Dustin pré-carregado');
+            }
+
+            // Pré-carregar áudio quando a página carregar
+            setTimeout(preloadDustinAudio, 2000);
+
+            function showDustinCall() {
+                loadingScreen.classList.add('hidden');
+                callScreen.classList.remove('hidden');
+
+                // Iniciar vibração de ligação recebida
+                startIncomingCallEffects();
+
+                // Configurar eventos dos botões
+                answerButton.addEventListener('click', answerCall);
+                declineButton.addEventListener('click', declineCall);
+            }
+
+            function startIncomingCallEffects() {
+                // Padrão de vibração para ligação recebida (vibra, pausa, vibra, pausa longa)
+                const vibrationPattern = [500, 300, 500, 1000];
+
+                // Iniciar vibração contínua
+                if (navigator.vibrate) {
+                    vibrationInterval = setInterval(() => {
+                        navigator.vibrate(vibrationPattern);
+                    }, 2000);
+                }
+
+                // Simular toque de telefone (se não tiver áudio de toque)
+                try {
+                    // Criar um tom de toque simples usando Web Audio API
+                    createRingtone();
+                } catch (error) {
+                    console.log('Web Audio não suportado');
+                }
+            }
+
+            function createRingtone() {
+                if (!window.AudioContext && !window.webkitAudioContext) return;
+
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+
+                function playTone(frequency, duration, delay = 0) {
+                    setTimeout(() => {
+                        const oscillator = audioContext.createOscillator();
+                        const gainNode = audioContext.createGain();
+
+                        oscillator.connect(gainNode);
+                        gainNode.connect(audioContext.destination);
+
+                        oscillator.frequency.setValueAtTime(frequency, audioContext.currentTime);
+                        oscillator.type = 'sine';
+
+                        gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + duration);
+
+                        oscillator.start(audioContext.currentTime);
+                        oscillator.stop(audioContext.currentTime + duration);
+                    }, delay);
+                }
+
+                // Padrão de toque: duas notas repetindo
+                function playRingtone() {
+                    if (!ringtonePlaying) return;
+                    playTone(800, 0.3, 0);
+                    playTone(600, 0.3, 400);
+                    setTimeout(playRingtone, 2000);
+                }
+
+                ringtonePlaying = true;
+                playRingtone();
+            }
+
+            function stopIncomingCallEffects() {
+                // Parar vibração
+                if (vibrationInterval) {
+                    clearInterval(vibrationInterval);
+                    vibrationInterval = null;
+                }
+
+                // Parar toque
+                ringtonePlaying = false;
+
+                // Parar qualquer vibração em andamento
+                if (navigator.vibrate) {
+                    navigator.vibrate(0);
+                }
+            }
+
+            function answerCall() {
+                // Parar efeitos de ligação recebida
+                stopIncomingCallEffects();
+
+                // Vibração de confirmação (curta)
+                if (navigator.vibrate) {
+                    navigator.vibrate(100);
+                }
+
+                // Atualizar interface para chamada ativa primeiro
+                callStatus.innerText = "Conectando...";
+                document.getElementById('call-buttons').style.display = 'none';
+                callTimer.style.display = 'block';
+
+                // Adicionar classe para efeitos visuais da chamada ativa
+                callScreen.classList.add('call-active');
+
+                // Remover animação do botão
+                answerButton.classList.remove('calling-animation');
+
+                // Usar áudio pré-carregado se disponível, senão criar novo
+                if (preloadedAudio && preloadedAudio.readyState >= 2) {
+                    dustinAudio = preloadedAudio;
+                    console.log('Usando áudio pré-carregado');
+                } else {
+                    dustinAudio = new Audio('assets/audio/dustin-missao-1.mp3');
+                    dustinAudio.preload = 'auto';
+                    dustinAudio.volume = 0.8;
+                    console.log('Criando novo áudio');
+                }
+
+                // Iniciar reprodução imediatamente
+                callStatus.innerText = "Chamada em andamento...";
+                callStartTime = Date.now();
+                startCallTimer();
+
+                // Tentar reproduzir o áudio
+                const playAudio = () => {
+                    dustinAudio.play().then(() => {
+                        console.log('Áudio iniciado com sucesso');
+                    }).catch(error => {
+                        console.error('Erro ao reproduzir áudio:', error);
+                        callStatus.innerText = "Áudio indisponível - continuando...";
+                        // Continuar mesmo sem áudio após 3 segundos
+                        setTimeout(endCall, 3000);
+                    });
+                };
+
+                // Se o áudio já estiver pronto, reproduzir imediatamente
+                if (dustinAudio.readyState >= 2) {
+                    playAudio();
+                } else {
+                    // Aguardar carregar ou tentar após 1 segundo
+                    dustinAudio.addEventListener('canplaythrough', playAudio, { once: true });
+                    setTimeout(() => {
+                        if (dustinAudio.paused) {
+                            console.log('Tentando reproduzir áudio após timeout');
+                            playAudio();
+                        }
+                    }, 1000);
+                }
+
+                // Quando o áudio terminar, aguardar um pouco antes de finalizar
+                dustinAudio.addEventListener('ended', () => {
+                    console.log('Áudio terminou');
+                    callStatus.innerText = "Chamada finalizada";
+                    setTimeout(endCall, 1500); // Aguardar 1.5s antes de finalizar
+                });
+
+                // Tratamento de erros de carregamento
+                dustinAudio.addEventListener('error', (error) => {
+                    console.error('Erro ao carregar áudio:', error);
+                    callStatus.innerText = "Erro no áudio, finalizando...";
+                    setTimeout(endCall, 2000);
+                });
+
+                // Fallback: finalizar após 10 segundos se ainda estiver "conectando"
+                setTimeout(() => {
+                    if (callStatus.innerText === "Conectando...") {
+                        console.log('Fallback: áudio não carregou, finalizando');
+                        callStatus.innerText = "Problema com áudio - finalizando...";
+                        setTimeout(endCall, 2000);
+                    }
+                }, 3000);
+
+                // Fallback final: garantir que a chamada termine em no máximo 12 segundos
+                setTimeout(() => {
+                    if (callStartTime) {
+                        console.log('Fallback final: finalizando chamada após 12s');
+                        endCall();
+                    }
+                }, 12000);
+            }
+
+            function startCallTimer() {
+                callTimerInterval = setInterval(() => {
+                    if (!callStartTime) return;
+
+                    const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
+                    const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');
+                    const seconds = (elapsed % 60).toString().padStart(2, '0');
+
+                    callTimer.innerText = `${minutes}:${seconds}`;
+                }, 1000);
+            }
+
+            function stopCallTimer() {
+                if (callTimerInterval) {
+                    clearInterval(callTimerInterval);
+                    callTimerInterval = null;
+                }
+                callStartTime = null;
+            }
+
+            function declineCall() {
+                // Parar efeitos de ligação recebida
+                stopIncomingCallEffects();
+
+                // Vibração de recusa (padrão diferente)
+                if (navigator.vibrate) {
+                    navigator.vibrate([100, 100, 100]);
+                }
+
+                // Atualizar status
+                callStatus.innerText = "Chamada recusada";
+
+                // Aguardar um momento antes de voltar à tela inicial
+                setTimeout(() => {
+                    // Parar todos os efeitos
+                    stopCallTimer();
+
+                    // Remover classe de chamada ativa
+                    callScreen.classList.remove('call-active');
+
+                    // Esconder tela de ligação e mostrar tela inicial
+                    callScreen.classList.add('hidden');
+                    loadingScreen.classList.remove('hidden');
+
+                    // Resetar elementos da interface
+                    callTimer.style.display = 'none';
+                    document.getElementById('call-buttons').style.display = 'flex';
+                    answerButton.classList.add('calling-animation');
+
+                    // Mostrar opções após recusar ligação
+                    buttonState = 'skip-call';
+                    loadingInfo.innerText = "Você pode tentar a ligação novamente ou pular direto para o jogo";
+                    enterButton.style.display = 'block';
+                    enterButton.innerText = "Pular Ligação";
+
+                    // Criar botão adicional para tentar ligação novamente
+                    if (!document.getElementById('retry-call-button')) {
+                        const retryButton = document.createElement('button');
+                        retryButton.id = 'retry-call-button';
+                        retryButton.className = 'ui-element';
+                        retryButton.style.cssText = `
+                            margin-top: 20px;
+                            padding: 15px 30px;
+                            font-size: 1.1em;
+                            font-weight: bold;
+                            color: #fff;
+                            background-color: #4CAF50;
+                            border: none;
+                            border-radius: 5px;
+                            cursor: pointer;
+                            text-transform: uppercase;
+                            letter-spacing: 1px;
+                        `;
+                        retryButton.innerText = "Tentar Ligação Novamente";
+                        retryButton.addEventListener('click', () => {
+                            // Esconder botões extras
+                            retryButton.style.display = 'none';
+                            buttonState = 'initial';
+                            enterButton.innerText = "Entrar no Mundo Invertido";
+                            loadingInfo.innerText = "Pronto para iniciar!";
+
+                            // Mostrar ligação novamente
+                            showDustinCall();
+                        });
+
+                        enterButton.parentNode.appendChild(retryButton);
+                    } else {
+                        document.getElementById('retry-call-button').style.display = 'block';
+                    }
+                }, 1500);
+            }
+
+            function endCall() {
+                console.log('endCall() chamada');
+
+                // Parar todos os efeitos
+                stopIncomingCallEffects();
+                stopCallTimer();
+
+                // Parar áudio se estiver tocando
+                if (dustinAudio) {
+                    dustinAudio.pause();
+                    dustinAudio = null;
+                }
+
+                // Remover classe de chamada ativa
+                callScreen.classList.remove('call-active');
+
+                // Esconder tela de ligação e mostrar tela de carregamento
+                callScreen.classList.add('hidden');
+                loadingScreen.classList.remove('hidden');
+
+                // Resetar elementos da interface
+                callTimer.style.display = 'none';
+                document.getElementById('call-buttons').style.display = 'flex';
+                answerButton.classList.add('calling-animation');
+
+                // Configurar botão para iniciar AR
+                buttonState = 'start-ar';
+                loadingInfo.innerText = "Clique para iniciar a experiência AR";
+                enterButton.style.display = 'block';
+                enterButton.innerText = "Iniciar AR";
+
+                console.log('Estado do botão:', buttonState);
+                console.log('Texto do botão:', enterButton.innerText);
+
+                console.log('Botão configurado como:', enterButton.innerText);
+            }
+
+
+
+            simulateLoading();
+
+            enterButton.addEventListener('click', async () => {
+                console.log('Botão clicado. Estado atual:', buttonState);
+                console.log('Texto atual:', enterButton.innerText);
+
+                // Usar estado em vez de texto para maior confiabilidade
+                if (buttonState === 'start-ar' || buttonState === 'skip-call') {
+                    // Ir direto para o AR
+                    console.log('Iniciando AR...');
+                    loadingInfo.innerText = "Iniciando AR...";
+
+                    try {
+                        // Verificar se WebXR é suportado
+                        if (!navigator.xr) {
+                            throw new Error('WebXR não suportado');
+                        }
+
+                        await sceneEl.enterAR();
+
+                        // Adicionar timeout para detectar se o AR não inicializar
+                        setTimeout(() => {
+                            const xrSession = sceneEl.renderer.xr.getSession();
+                            if (!xrSession) {
+                                console.warn('AR não inicializou corretamente');
+                                loadingInfo.innerText = "Erro ao iniciar AR. Tente novamente.";
+                                buttonState = 'start-ar';
+                                enterButton.style.display = 'block';
+                                enterButton.innerText = "Tentar AR Novamente";
+                            }
+                        }, 3000);
+
+                    } catch (e) {
+                        console.error('Erro ao iniciar AR:', e);
+
+                        // Mensagens de erro mais específicas
+                        let errorMessage = "AR não suportado.";
+                        if (e.message.includes('NotAllowedError') || e.message.includes('permission')) {
+                            errorMessage = "Permissão de câmera negada. Permita o acesso à câmera.";
+                        } else if (e.message.includes('NotFoundError')) {
+                            errorMessage = "Câmera não encontrada.";
+                        } else if (e.message.includes('NotSupportedError')) {
+                            errorMessage = "AR não suportado neste dispositivo/navegador.";
+                        }
+
+                        loadingInfo.innerText = errorMessage;
+
+                        // Mostrar botão para tentar novamente
+                        setTimeout(() => {
+                            buttonState = 'start-ar';
+                            enterButton.style.display = 'block';
+                            enterButton.innerText = "Tentar AR Novamente";
+                        }, 3000);
+                    }
+                } else if (buttonState === 'retry') {
+                    // Resetar o botão
+                    buttonState = 'initial';
+                    enterButton.innerText = "Entrar no Mundo Invertido";
+                    loadingInfo.innerText = "Pronto para iniciar!";
+                    showDustinCall();
+                } else {
+                    // Estado inicial - mostrar simulação de ligação do Dustin
+                    console.log('Mostrando ligação do Dustin');
+                    showDustinCall();
+                }
+            });
+
+            sceneEl.addEventListener('enter-vr', () => {
+                console.log('Evento enter-vr disparado');
+
+                // Aguardar um pouco para garantir que o AR esteja totalmente inicializado
+                setTimeout(() => {
+                    // Verificar se a sessão XR está ativa
+                    const xrSession = sceneEl.renderer.xr.getSession();
+                    if (xrSession) {
+                        console.log('Sessão XR ativa, inicializando jogo');
+                        loadingScreen.classList.add('hidden');
+                        document.getElementById('backpack-icon').style.display = 'flex';
+                        initGame();
+                    } else {
+                        console.warn('Sessão XR não encontrada, tentando novamente...');
+                        // Tentar novamente após mais um tempo
+                        setTimeout(() => {
+                            loadingScreen.classList.add('hidden');
+                            document.getElementById('backpack-icon').style.display = 'flex';
+                            initGame();
+                        }, 1000);
+                    }
+                }, 500);
+            });
+
+            function initGame() {
+                console.log('Inicializando jogo...');
+
+                // Verificar se a câmera AR está funcionando
+                setTimeout(() => {
+                    const canvas = sceneEl.canvas || sceneEl.renderer.domElement;
+                    if (canvas) {
+                        const ctx = canvas.getContext('2d');
+                        if (ctx) {
+                            // Verificar se há conteúdo sendo renderizado
+                            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                            const hasContent = imageData.data.some(pixel => pixel !== 0);
+
+                            if (!hasContent) {
+                                console.warn('Possível problema com a câmera AR');
+                                showToast("Se a tela estiver preta, tente recarregar a página", 'warning', 5000);
+                            }
+                        }
+                    }
+                }, 3000);
+
+                // Configurar modal da mochila
+                setupBackpackModal();
+
+                // Configurar botão de debug
+                setupDebugButton();
+
+                // Mostrar medidor de distância
+                document.getElementById('distance-meter').classList.add('show');
+
+                // Mostrar notificação inicial
+                showToast("Bem-vindo ao Mundo Invertido! Toque no ícone da mochila para ver seus objetivos.", 'info', 5000);
+
+                // Configurar sistema de toque para coleta
+                setupTouchInteraction();
+
+                // Inicializar geolocalização
+                setupGeolocation();
+
+                // Inicializar hit-test source quando a sessão XR estiver ativa
+                const renderer = sceneEl.renderer;
+                const xrSession = renderer.xr.getSession();
+
+                if (xrSession) {
+                    setupHitTest(xrSession, renderer);
+                } else {
+                    // Tentar novamente após um tempo
+                    setTimeout(() => {
+                        const newSession = renderer.xr.getSession();
+                        if (newSession) {
+                            setupHitTest(newSession, renderer);
+                        }
+                    }, 1000);
+                }
+            }
+
+            function setupDebugButton() {
+                const debugButton = document.getElementById('debug-collect');
+                debugButton.addEventListener('click', () => {
+                    if (currentObjectPlaced && currentObjectIndex < objectsToPlace.length) {
+                        const currentObjectId = objectsToPlace[currentObjectIndex];
+                        console.log('Debug: Coletando objeto forçadamente:', currentObjectId);
+                        showToast("Item coletado via debug! ✅", 'success', 2000);
+                        collectItem(currentObjectId);
+                    } else {
+                        showToast("Nenhum objeto disponível para coletar", 'warning', 2000);
+                    }
+                });
+
+                // Mostrar botão quando um objeto estiver colocado
+                setInterval(() => {
+                    if (currentObjectPlaced && currentObjectIndex < objectsToPlace.length) {
+                        debugButton.style.display = 'block';
+                    } else {
+                        debugButton.style.display = 'none';
+                    }
+                }, 1000);
+            }
+
+            function setupBackpackModal() {
+                const backpackIcon = document.getElementById('backpack-icon');
+                const backpackModal = document.getElementById('backpack-modal');
+                const closeBackpack = document.getElementById('close-backpack');
+
+                // Abrir modal ao clicar no ícone
+                backpackIcon.addEventListener('click', () => {
+                    backpackModal.style.display = 'flex';
+                    updateBackpackContent();
+                });
+
+                // Fechar modal
+                closeBackpack.addEventListener('click', () => {
+                    backpackModal.style.display = 'none';
+                });
+
+                // Fechar modal clicando fora do conteúdo
+                backpackModal.addEventListener('click', (e) => {
+                    if (e.target === backpackModal) {
+                        backpackModal.style.display = 'none';
+                    }
+                });
+            }
+
+            function updateBackpackContent() {
+                const progressText = document.getElementById('progress-text');
+                const progressFill = document.getElementById('progress-fill');
+                const backpackBadge = document.getElementById('backpack-badge');
+
+                // Atualizar contador
+                const totalItems = Object.keys(collectibles).length;
+                progressText.innerText = `${foundCollectibles} de ${totalItems} itens coletados`;
+                backpackBadge.innerText = `${foundCollectibles}/${totalItems}`;
+
+                // Atualizar barra de progresso
+                const progressPercent = (foundCollectibles / totalItems) * 100;
+                progressFill.style.width = `${progressPercent}%`;
+            }
+
+            // Sistema de notificações toast
+            function showToast(message, type = 'info', duration = 3000) {
+                const toastContainer = document.getElementById('toast-container');
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                toast.innerText = message;
+
+                toastContainer.appendChild(toast);
+
+                // Mostrar toast
+                setTimeout(() => {
+                    toast.classList.add('show');
+                }, 100);
+
+                // Remover toast
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => {
+                        if (toast.parentNode) {
+                            toast.parentNode.removeChild(toast);
+                        }
+                    }, 300);
+                }, duration);
+            }
+
+            // Função para obter nome do objeto
+            function getObjectName(objectId) {
+                const names = {
+                    'bike': 'Bicicleta',
+                    'compass': 'Bússola',
+                    'baseball-bat': 'Taco de Baseball',
+                    'machado': 'Machado',
+                    'walkie-talkie': 'Walkie-Talkie',
+                    'demogorgon': 'Demogorgon',
+                    'will-mundo-invertido': 'Will (Mundo Invertido)'
+                };
+                return names[objectId] || 'objeto';
+            }
+
+            // Função para destacar objeto quando o jogador erra o clique
+            function highlightObject(objectEntity) {
+                if (!objectEntity) return;
+
+                // Adicionar classe de destaque temporariamente
+                objectEntity.classList.add('collectible-highlight');
+
+                // Remover após 1 segundo
+                setTimeout(() => {
+                    objectEntity.classList.remove('collectible-highlight');
+                }, 1000);
+            }
+
+            // Função para adicionar indicador visual de área clicável
+            function addClickIndicator(objectEntity) {
+                if (!objectEntity) return;
+
+                // Criar um anel indicador ao redor do objeto
+                const indicator = document.createElement('a-entity');
+                indicator.setAttribute('id', objectEntity.id + '-indicator');
+                indicator.setAttribute('geometry', 'primitive: ring; radiusInner: 0.3; radiusOuter: 0.4');
+                indicator.setAttribute('material', 'color: #e72626; opacity: 0.7; shader: flat');
+                indicator.setAttribute('position', '0 0.1 0');
+                indicator.setAttribute('rotation', '-90 0 0');
+                indicator.setAttribute('animation', 'property: rotation; to: -90 360 0; loop: true; dur: 3000');
+
+                // Adicionar o indicador como filho do objeto
+                objectEntity.appendChild(indicator);
+
+                console.log('Indicador visual adicionado ao objeto:', objectEntity.id);
+            }
+
+            // Função para remover indicador visual
+            function removeClickIndicator(objectEntity) {
+                if (!objectEntity) return;
+
+                const indicator = document.getElementById(objectEntity.id + '-indicator');
+                if (indicator) {
+                    indicator.remove();
+                    console.log('Indicador visual removido do objeto:', objectEntity.id);
+                }
+            }
+
+            function setupGeolocation() {
+                if (!navigator.geolocation) {
+                    showToast("Geolocalização não suportada neste dispositivo.", 'warning');
+                    // Atualizar medidor para mostrar erro
+                    const distanceText = document.getElementById('distance-text');
+                    if (distanceText) {
+                        distanceText.innerHTML = "GPS não disponível";
+                    }
+                    return;
+                }
+
+                const options = {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 1000
+                };
+
+                // Obter posição inicial
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        currentLocation = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+                        checkProximityToLocations();
+                    },
+                    (error) => {
+                        console.error('Erro ao obter localização:', error);
+                        showToast("Erro ao acessar localização. Verifique as permissões.", 'warning');
+                        // Atualizar medidor para mostrar erro
+                        const distanceText = document.getElementById('distance-text');
+                        if (distanceText) {
+                            distanceText.innerHTML = "Erro no GPS";
+                        }
+                    },
+                    options
+                );
+
+                // Monitorar mudanças de posição
+                geolocationWatchId = navigator.geolocation.watchPosition(
+                    (position) => {
+                        currentLocation = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+                        checkProximityToLocations();
+                    },
+                    (error) => {
+                        console.error('Erro no monitoramento de localização:', error);
+                        // Atualizar medidor para mostrar erro
+                        const distanceText = document.getElementById('distance-text');
+                        if (distanceText) {
+                            distanceText.innerHTML = "Erro no GPS";
+                        }
+                    },
+                    options
+                );
+            }
+
+            function calculateDistance(lat1, lng1, lat2, lng2) {
+                const R = 6371000; // Raio da Terra em metros
+                const dLat = (lat2 - lat1) * Math.PI / 180;
+                const dLng = (lng2 - lng1) * Math.PI / 180;
+                const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                    Math.sin(dLng / 2) * Math.sin(dLng / 2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                return R * c; // Distância em metros
+            }
+
+            function vibrateDevice(pattern = 500) {
+                if (navigator.vibrate) {
+                    if (typeof pattern === 'number') {
+                        navigator.vibrate(pattern);
+                    } else {
+                        navigator.vibrate(pattern);
+                    }
+                }
+            }
+
+            // Diferentes padrões de vibração para diferentes eventos
+            function vibrateSuccess() {
+                vibrateDevice([200, 100, 200]); // Sucesso: duas vibrações curtas
+            }
+
+            function vibrateLocationFound() {
+                vibrateDevice([300, 200, 300, 200, 300]); // Localização encontrada: padrão mais longo
+            }
+
+            function vibrateItemCollected() {
+                vibrateDevice([100, 50, 100, 50, 200]); // Item coletado: padrão rápido
+            }
+
+            function checkProximityToLocations() {
+                if (!currentLocation) return;
+
+                const currentObjectLocation = objectLocations[currentObjectIndex];
+                if (!currentObjectLocation) return;
+
+                const distance = calculateDistance(
+                    currentLocation.lat, currentLocation.lng,
+                    currentObjectLocation.lat, currentObjectLocation.lng
+                );
+
+                console.log(`Distância para ${currentObjectLocation.name}: ${distance.toFixed(1)}m`);
+
+                // Atualizar medidor de distância na tela principal
+                const distanceMeter = document.getElementById('distance-meter');
+                const distanceText = document.getElementById('distance-text');
+                const locationStatus = document.getElementById('location-status'); // Manter para a mochila
+
+                const formattedDistance = distance > 1000 ?
+                    `${(distance / 1000).toFixed(1)}km` :
+                    `${Math.round(distance)}m`;
+
+                if (locationUnlocked[currentObjectIndex]) {
+                    // Localização desbloqueada
+                    distanceMeter.classList.add('unlocked');
+                    distanceText.innerHTML = `✅ ${currentObjectLocation.name} desbloqueado!`;
+
+                    // Atualizar também na mochila
+                    if (locationStatus) {
+                        locationStatus.innerHTML = `✅ ${currentObjectLocation.name} desbloqueado!`;
+                    }
+                } else if (distance <= PROXIMITY_RADIUS) {
+                    // Jogador chegou perto o suficiente!
+                    locationUnlocked[currentObjectIndex] = true;
+                    canPlace = true;
+
+                    // Vibrar o dispositivo com padrão especial
+                    vibrateLocationFound();
+
+                    // Atualizar medidor principal
+                    distanceMeter.classList.add('unlocked');
+                    distanceText.innerHTML = `✅ ${currentObjectLocation.name} desbloqueado!`;
+
+                    // Atualizar instruções e status
+                    showToast(`Você chegou perto de ${currentObjectLocation.name}! Procure uma superfície para encontrá-lo.`, 'success');
+
+                    // Atualizar também na mochila
+                    if (locationStatus) {
+                        locationStatus.innerHTML = `✅ ${currentObjectLocation.name} desbloqueado!`;
+                    }
+
+                    console.log(`Localização desbloqueada: ${currentObjectLocation.name}`);
+                } else {
+                    // Mostrar distância atual
+                    distanceMeter.classList.remove('unlocked');
+                    distanceText.innerHTML = `${currentObjectLocation.name}: ${formattedDistance}`;
+
+                    // Atualizar também na mochila
+                    if (locationStatus) {
+                        locationStatus.innerHTML = `🎯 ${currentObjectLocation.name}: ${formattedDistance}`;
+                    }
+                }
+            }
+
+            function setupTouchInteraction() {
+                // Adicionar listener apenas para toque na cena AR (não em qualquer lugar da tela)
+                sceneEl.addEventListener('touchstart', handleTouch);
+                sceneEl.addEventListener('click', handleTouch);
+
+                // Adicionar listeners para eventos customizados dos objetos
+                setupObjectClickListeners();
+
+                // Adicionar sistema de detecção por proximidade do cursor
+                setupCursorDetection();
+            }
+
+            function setupCursorDetection() {
+                // Detectar quando o cursor A-Frame intersecta com objetos
+                sceneEl.addEventListener('raycaster-intersection', (event) => {
+                    const intersectedEl = event.detail.els[0];
+                    if (intersectedEl && intersectedEl.classList.contains('collectible')) {
+                        console.log('Cursor intersectou com objeto:', intersectedEl.id);
+
+                        // Se for o objeto correto, destacar
+                        if (currentObjectPlaced &&
+                            currentObjectIndex < objectsToPlace.length &&
+                            objectsToPlace[currentObjectIndex] === intersectedEl.id) {
+
+                            intersectedEl.classList.add('collectible-highlight');
+                        }
+                    }
+                });
+
+                sceneEl.addEventListener('raycaster-intersection-cleared', (event) => {
+                    const clearedEl = event.detail.clearedEls[0];
+                    if (clearedEl && clearedEl.classList.contains('collectible')) {
+                        console.log('Cursor saiu do objeto:', clearedEl.id);
+                        clearedEl.classList.remove('collectible-highlight');
+                    }
+                });
+            }
+
+            function setupObjectClickListeners() {
+                const objectIds = ['bike', 'compass', 'baseball-bat', 'machado', 'walkie-talkie', 'demogorgon', 'will-mundo-invertido'];
+
+                objectIds.forEach(objectId => {
+                    const objectElement = document.getElementById(objectId);
+                    if (objectElement) {
+                        objectElement.addEventListener('object-clicked', (event) => {
+                            console.log('Evento object-clicked recebido para:', event.detail.objectId);
+                            handleObjectClick(event.detail.objectId);
+                        });
+                    }
+                });
+            }
+
+            function handleObjectClick(objectId) {
+                console.log('Processando clique no objeto:', objectId);
+                console.log('currentObjectPlaced:', currentObjectPlaced);
+                console.log('currentObjectIndex:', currentObjectIndex);
+                console.log('objectsToPlace[currentObjectIndex]:', objectsToPlace[currentObjectIndex]);
+
+                // Verificar se este é o objeto atual que pode ser coletado
+                if (currentObjectPlaced &&
+                    currentObjectIndex < objectsToPlace.length &&
+                    objectsToPlace[currentObjectIndex] === objectId) {
+
+                    const objectElement = document.getElementById(objectId);
+                    if (objectElement && objectElement.getAttribute('visible') === true) {
+                        console.log('Coletando objeto:', objectId);
+                        showToast("Item coletado! ✅", 'success', 2000);
+                        collectItem(objectId);
+                    } else {
+                        console.log('Objeto não está visível');
+                    }
+                } else {
+                    console.log('Não é o objeto correto para coletar no momento');
+                    if (currentObjectIndex < objectsToPlace.length) {
+                        const expectedObject = objectsToPlace[currentObjectIndex];
+                        const expectedName = getObjectName(expectedObject);
+                        showToast(`Procure por ${expectedName} primeiro!`, 'warning', 2500);
+                    }
+                }
+            }
+
+            // Função removida - agora só coleta clicando no objeto específico
+
+            function handleTouch(event) {
+                console.log('handleTouch chamado');
+                console.log('currentObjectPlaced:', currentObjectPlaced);
+                console.log('currentObjectIndex:', currentObjectIndex);
+
+                if (!currentObjectPlaced || currentObjectIndex >= objectsToPlace.length) {
+                    console.log('Saindo: objeto não colocado ou índice inválido');
+                    return;
+                }
+
+                // Verificar se o toque foi em um elemento da UI (ignorar se for)
+                if (event.target && (
+                    event.target.closest('#backpack-icon') ||
+                    event.target.closest('#backpack-modal') ||
+                    event.target.closest('#toast-container')
+                )) {
+                    return; // Não processar toques na UI
+                }
+
+                // Prevenir comportamento padrão
+                event.preventDefault();
+                event.stopPropagation();
+
+                // Obter coordenadas do toque (normalizado para -1 a 1)
+                let clientX, clientY;
+                if (event.touches && event.touches.length > 0) {
+                    clientX = event.touches[0].clientX;
+                    clientY = event.touches[0].clientY;
+                } else {
+                    clientX = event.clientX || event.detail.clientX;
+                    clientY = event.clientY || event.detail.clientY;
+                }
+
+                // Obter canvas da cena
+                const canvas = sceneEl.canvas || sceneEl.renderer.domElement;
+                if (!canvas) return;
+
+                const rect = canvas.getBoundingClientRect();
+
+                const mouse = {
+                    x: ((clientX - rect.left) / rect.width) * 2 - 1,
+                    y: -((clientY - rect.top) / rect.height) * 2 + 1
+                };
+
+                // Fazer raycast para verificar se tocou no objeto
+                try {
+                    const raycaster = new THREE.Raycaster();
+                    const camera = sceneEl.camera;
+
+                    if (!camera) return;
+
+                    raycaster.setFromCamera(mouse, camera);
+
+                    // Verificar se o raio intersecta com o objeto atual
+                    const currentObjectId = objectsToPlace[currentObjectIndex];
+                    const currentObject = document.getElementById(currentObjectId);
+
+                    if (currentObject && currentObject.getAttribute('visible') === true) {
+                        // Fazer raycast mais preciso incluindo todos os filhos do objeto
+                        const intersects = raycaster.intersectObject(currentObject.object3D, true);
+
+                        if (intersects.length > 0) {
+                            // Objeto foi tocado com sucesso!
+                            console.log('Objeto tocado com precisão via raycast:', currentObjectId);
+
+                            // Feedback visual de sucesso
+                            showToast("Item coletado! ✅", 'success', 2000);
+
+                            collectItem(currentObjectId);
+                        } else {
+                            // Toque não acertou o objeto - tentar fallback simples
+                            console.log('Raycast não acertou, tentando fallback simples');
+
+                            // Fallback melhorado: verificar distância do toque ao objeto
+                            if (currentObject && currentObject.getAttribute('visible') === true) {
+                                const objectPosition = currentObject.object3D.position;
+                                const camera = sceneEl.camera;
+
+                                if (camera && objectPosition) {
+                                    // Calcular distância 2D na tela entre o toque e o objeto
+                                    const objectScreenPos = objectPosition.clone().project(camera);
+                                    const touchDistance = Math.sqrt(
+                                        Math.pow(mouse.x - objectScreenPos.x, 2) +
+                                        Math.pow(mouse.y - objectScreenPos.y, 2)
+                                    );
+
+                                    console.log('Distância do toque ao objeto:', touchDistance);
+
+                                    // Se o toque está próximo o suficiente (raio generoso)
+                                    if (touchDistance < 0.5) {
+                                        console.log('Toque próximo o suficiente - coletando objeto:', currentObjectId);
+                                        showToast("Item coletado! ✅", 'success', 2000);
+                                        collectItem(currentObjectId);
+                                    } else {
+                                        // Obter nome do objeto atual para feedback mais específico
+                                        let objectName = getObjectName(currentObjectId);
+                                        showToast(`Toque mais perto do ${objectName}! 👆`, 'info', 2500);
+                                        highlightObject(currentObject);
+                                    }
+                                } else {
+                                    // Fallback final: coletar se objeto está visível
+                                    console.log('Fallback final - coletando objeto:', currentObjectId);
+                                    showToast("Item coletado! ✅", 'success', 2000);
+                                    collectItem(currentObjectId);
+                                }
+                            } else {
+                                // Obter nome do objeto atual para feedback mais específico
+                                let objectName = getObjectName(currentObjectId);
+                                showToast(`Toque no ${objectName} para coletá-lo! 👆`, 'info', 2500);
+
+                                // Fazer o objeto "piscar" para chamar atenção
+                                highlightObject(currentObject);
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.error('Erro no raycasting:', error);
+
+                    // Fallback final: se há um objeto colocado, coletar (modo fácil)
+                    if (currentObjectPlaced && currentObjectIndex < objectsToPlace.length) {
+                        const currentObjectId = objectsToPlace[currentObjectIndex];
+                        const currentObject = document.getElementById(currentObjectId);
+
+                        if (currentObject && currentObject.getAttribute('visible') === true) {
+                            console.log('Fallback final (modo fácil) - coletando objeto:', currentObjectId);
+                            showToast("Item coletado! ✅", 'success', 2000);
+                            collectItem(currentObjectId);
+                        }
+                    } else {
+                        showToast("Erro na detecção. Use o botão debug se necessário.", 'warning', 3000);
+                    }
+                }
+            }
+
+            async function setupHitTest(session, renderer) {
+                try {
+                    const referenceSpace = await session.requestReferenceSpace('viewer');
+                    hitTestSource = await session.requestHitTestSource({ space: referenceSpace });
+
+                    // Iniciar o loop de hit-test
+                    renderer.setAnimationLoop(onXRFrame);
+                } catch (error) {
+                    console.error('Erro ao configurar hit-test:', error);
+                    showToast("Erro ao inicializar detecção de superfície.", 'warning');
+                }
+            }
+
+            function onXRFrame(timestamp, frame) {
+                if (!frame || !hitTestSource) return;
+
+                const hitTestResults = frame.getHitTestResults(hitTestSource);
+
+                if (hitTestResults.length > 0) {
+                    const hit = hitTestResults[0];
+                    const pose = hit.getPose(sceneEl.renderer.xr.getReferenceSpace());
+
+                    if (pose) {
+                        // Mostrar retícula na posição da superfície detectada
+                        reticle.setAttribute('visible', true);
+                        reticle.object3D.matrix.fromArray(pose.transform.matrix);
+                        reticle.object3D.matrix.decompose(
+                            reticle.object3D.position,
+                            reticle.object3D.quaternion,
+                            reticle.object3D.scale
+                        );
+
+                        // Colocar objeto apenas se a localização foi desbloqueada e não há objeto atual colocado
+                        if (canPlace && !currentObjectPlaced && currentObjectIndex < objectsToPlace.length && locationUnlocked[currentObjectIndex]) {
+                            placeObject(pose);
+                        }
+                    }
+                } else {
+                    // Esconder retícula quando não há superfície detectada
+                    reticle.setAttribute('visible', false);
+                }
+
+                // Continuar renderizando a cena
+                sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
+            }
+
+            function placeObject(pose) {
+                const objectId = objectsToPlace[currentObjectIndex];
+                const objectEntity = document.getElementById(objectId);
+
+                // Posicionar o objeto na superfície detectada
+                objectEntity.object3D.matrix.fromArray(pose.transform.matrix);
+                objectEntity.object3D.matrix.decompose(
+                    objectEntity.object3D.position,
+                    objectEntity.object3D.quaternion,
+                    objectEntity.object3D.scale
+                );
+
+                // Ajustar escala do objeto
+                let scale;
+                if (objectId === 'bike') {
+                    scale = 0.4; // Bicicleta
+                } else if (objectId === 'demogorgon') {
+                    scale = 0.8; // Demogorgon
+                } else if (objectId === 'baseball-bat') {
+                    scale = 1.5; // Taco de Baseball
+                } else if (objectId === 'compass') {
+                    scale = 8; // Bússola
+                } else if (objectId === 'machado') {
+                    scale = 5; // Machado
+                } else if (objectId === 'walkie-talkie') {
+                    scale = 0.8; // Walkie-Talkie
+                } else if (objectId === 'will-mundo-invertido') {
+                    scale = 1; // Will (Mundo Invertido)
+                } else {
+                    scale = 0.5; // Padrão
+                }
+                objectEntity.object3D.scale.set(scale, scale, scale);
+
+                // Tornar o objeto visível
+                objectEntity.setAttribute('visible', true);
+
+                // Adicionar animação de pulsação para indicar que pode ser coletado
+                objectEntity.classList.add('collectible-ready');
+
+                // Adicionar indicador visual de área clicável
+                addClickIndicator(objectEntity);
+
+                // Marcar que o objeto atual foi colocado
+                currentObjectPlaced = true;
+                window.currentObjectPlaced = true; // Atualizar variável global
+                console.log('Objeto colocado:', objectId, 'currentObjectPlaced:', currentObjectPlaced);
+
+                // Atualizar instruções
+                const objectName = getObjectName(objectId);
+                showToast(`${objectName} encontrado! Toque no objeto para coletar.`, 'success');
+
+                canPlace = false;
+            }
+
+            function collectItem(id) {
+                console.log('collectItem chamado para:', id);
+                console.log('collectibles[id]:', collectibles[id]);
+
+                if (collectibles[id]) {
+                    console.log('Item já foi coletado, retornando');
+                    return;
+                }
+
+                collectibles[id] = true;
+                foundCollectibles++;
+
+                // Item coletado - sem vibração
+
+                const entity = document.getElementById(id);
+                if (entity) {
+                    entity.setAttribute('visible', 'false');
+                    entity.classList.remove('collectible-ready'); // Remover animação
+                    removeClickIndicator(entity); // Remover indicador visual
+                }
+
+                const listItem = document.querySelector(`#collectibles-list li[data-item="${id}"]`);
+                if (listItem) {
+                    listItem.classList.add('found');
+                    const statusIcon = listItem.querySelector('.item-status');
+                    if (statusIcon) statusIcon.innerText = '✅';
+                }
+
+                // Atualizar conteúdo da mochila
+                updateBackpackContent();
+
+                // Preparar para o próximo objeto
+                currentObjectIndex++;
+                currentObjectPlaced = false;
+
+                // Atualizar variáveis globais
+                window.currentObjectIndex = currentObjectIndex;
+                window.currentObjectPlaced = false;
+
+                if (currentObjectIndex < objectsToPlace.length) {
+                    // Ainda há objetos para colocar
+                    const nextObjectId = objectsToPlace[currentObjectIndex];
+                    const nextObjectName = getObjectName(nextObjectId);
+                    showToast(`Ótimo! Agora vá até a localização de ${nextObjectName}`, 'info');
+
+                    // Resetar flags para o próximo objeto
+                    canPlace = false;
+
+                    // Verificar se já está perto da próxima localização
+                    setTimeout(() => {
+                        checkProximityToLocations();
+                    }, 1500);
+                } else {
+                    // Todos os objetos foram coletados
+                    showVictoryScreen();
+                }
+            }
+
+            function showVictoryScreen() {
+                // Parar monitoramento de geolocalização
+                if (geolocationWatchId) {
+                    navigator.geolocation.clearWatch(geolocationWatchId);
+                }
+
+                // Esconder ícone da mochila e modal
+                document.getElementById('backpack-icon').style.display = 'none';
+                document.getElementById('backpack-modal').style.display = 'none';
+
+                victoryScreen.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+
+</html>
