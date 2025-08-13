@@ -785,7 +785,7 @@
             <div id="progress-bar-container">
                 <div id="progress-bar"></div>
             </div>
-            <p id="loading-info">2Carregando assets...</p>
+            <p id="loading-info">Carregando assets...</p>
 
             <button id="enter-button" class="ui-element">Entrar no Mundo Invertido</button>
         </div>
@@ -982,6 +982,7 @@
             const objectsToPlace = ['walkie-talkie', 'bike', 'compass', 'baseball-bat', 'machado', 'demogorgon', 'will-mundo-invertido'];
             let currentObjectIndex = 0;
             let currentObjectPlaced = false;
+            let gameInitialized = false; // Flag para controlar a inicialização do jogo
 
             // Tornar variáveis acessíveis globalmente para o componente A-Frame
             window.objectsToPlace = objectsToPlace;
@@ -1218,54 +1219,64 @@
             enterButton.addEventListener('click', async () => {
                 console.log('Botão de entrada clicado. Tentando iniciar AR...');
                 loadingInfo.innerText = "Iniciando AR...";
+                enterButton.disabled = true; // Desabilitar botão para evitar cliques duplos
+
+                // Adicionar um timeout para o caso de a inicialização travar
+                const arStartTimeout = setTimeout(() => {
+                    if (!gameInitialized) {
+                        loadingInfo.innerText = "Falha ao iniciar AR. Verifique as permissões e recarregue a página.";
+                        enterButton.innerText = "Tentar Novamente";
+                        enterButton.disabled = false;
+                    }
+                }, 8000); // 8 segundos de timeout
 
                 try {
                     if (!navigator.xr) {
-                        throw new Error('WebXR não suportado');
+                        throw new Error('WebXR não é suportado neste navegador.');
                     }
+                    if (window.location.protocol !== 'https:') {
+                         throw new Error('WebXR requer uma conexão segura (HTTPS).');
+                    }
+                    
                     await sceneEl.enterAR();
-                    setTimeout(() => {
-                        const xrSession = sceneEl.renderer.xr.getSession();
-                        if (!xrSession) {
-                            console.warn('AR não inicializou corretamente');
-                            loadingInfo.innerText = "Erro ao iniciar AR. Tente novamente.";
-                            enterButton.style.display = 'block';
-                            enterButton.innerText = "Tentar AR Novamente";
-                        }
-                    }, 3000);
+                    // O evento 'enter-vr' vai cuidar da inicialização do jogo
+                    // O timeout será limpo no listener 'enter-vr'
+                    clearTimeout(arStartTimeout);
+
                 } catch (e) {
+                    clearTimeout(arStartTimeout);
                     console.error('Erro ao iniciar AR:', e);
-                    let errorMessage = "AR não suportado.";
-                    if (e.message.includes('NotAllowedError') || e.message.includes('permission')) {
-                        errorMessage = "Permissão de câmera negada. Permita o acesso à câmera.";
-                    } else if (e.message.includes('NotFoundError')) {
-                        errorMessage = "Câmera não encontrada.";
-                    } else if (e.message.includes('NotSupportedError')) {
-                        errorMessage = "AR não suportado neste dispositivo/navegador.";
-                    }
-                    loadingInfo.innerText = errorMessage;
-                    setTimeout(() => {
-                        enterButton.style.display = 'block';
-                        enterButton.innerText = "Tentar AR Novamente";
-                    }, 3000);
+                    loadingInfo.innerText = `Erro: ${e.message}`;
+                    enterButton.innerText = "Tentar Novamente";
+                    enterButton.disabled = false;
                 }
             });
 
             sceneEl.addEventListener('enter-vr', () => {
                 console.log('Evento enter-vr disparado (iniciando AR)');
-                setTimeout(() => {
-                    const xrSession = sceneEl.renderer.xr.getSession();
-                    if (xrSession) {
-                        console.log('Sessão XR ativa, inicializando jogo');
-                        loadingScreen.classList.add('hidden');
-                        document.getElementById('backpack-icon').style.display = 'flex';
-                        initGame();
-                    }
-                }, 500);
+                // A-Frame entrou no modo AR com sucesso
+                if (!gameInitialized) {
+                    initGame();
+                }
+            });
+            
+            sceneEl.addEventListener('exit-vr', () => {
+                console.log('Saindo do modo AR.');
+                // Opcional: resetar estado do jogo ou mostrar tela inicial
+                gameInitialized = false;
+                loadingScreen.classList.remove('hidden');
+                loadingInfo.innerText = "Você saiu do Mundo Invertido.";
+                enterButton.innerText = "Entrar Novamente";
+                enterButton.disabled = false;
             });
 
             function initGame() {
                 console.log('Inicializando jogo...');
+                gameInitialized = true;
+
+                loadingScreen.classList.add('hidden');
+                document.getElementById('backpack-icon').style.display = 'flex';
+
                 setupBackpackModal();
                 setupDebugButton();
                 document.getElementById('distance-meter').classList.add('show');
@@ -1277,6 +1288,9 @@
                 const xrSession = renderer.xr.getSession();
                 if (xrSession) {
                     setupHitTest(xrSession, renderer);
+                } else {
+                    console.error("Sessão XR não encontrada na inicialização do jogo.");
+                    showToast("Erro crítico: Sessão AR perdida.", 'warning');
                 }
             }
 
@@ -1491,7 +1505,7 @@
                 } else {
                     reticle.setAttribute('visible', false);
                 }
-                sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
+                // A renderização é tratada pelo loop de animação do WebXR, não precisa chamar aqui.
             }
 
             function placeObject(pose) {
