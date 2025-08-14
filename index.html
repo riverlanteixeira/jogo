@@ -785,7 +785,7 @@
             <div id="progress-bar-container">
                 <div id="progress-bar"></div>
             </div>
-            <p id="loading-info">3Carregando assets...</p>
+            <p id="loading-info">4Carregando assets...</p>
 
             <button id="enter-button" class="ui-element">Entrar no Mundo Invertido</button>
         </div>
@@ -959,7 +959,10 @@
             }
         });
 
+        console.log('Script carregado, aguardando DOM...');
+
         document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM carregado - primeiro listener');
             const sceneEl = document.getElementById('ar-scene');
             const loadingScreen = document.getElementById('loading-screen');
             const enterButton = document.getElementById('enter-button');
@@ -1296,25 +1299,30 @@
                 }, 300);
             }
 
-            // Sistema de carregamento simplificado
-            document.addEventListener('DOMContentLoaded', () => {
-                console.log('DOM carregado, iniciando carregamento...');
+            // Sistema de carregamento movido para o primeiro DOMContentLoaded
 
-                // Aguardar um pouco e iniciar carregamento simples
-                setTimeout(() => {
-                    console.log('Iniciando carregamento de áudios...');
-                    startAudioLoading();
-                }, 1000);
-            });
+            // Função removida - substituída por startAudioLoadingLocal
 
-            function startAudioLoading() {
-                console.log('startAudioLoading() chamada');
+            // Função de carregamento de áudios (dentro do escopo do DOMContentLoaded)
+            function startAudioLoadingLocal() {
+                console.log('startAudioLoadingLocal() chamada');
+                console.log('dustinAudios:', dustinAudios);
 
                 if (!loadingInfo || !progressBar) {
                     console.error('Elementos de UI não encontrados');
+                    console.log('loadingInfo:', loadingInfo);
+                    console.log('progressBar:', progressBar);
+
+                    // Tentar encontrar os elementos novamente
+                    const loadingInfoNew = document.getElementById('loading-info');
+                    const progressBarNew = document.getElementById('progress-bar');
+                    console.log('Tentativa de encontrar novamente:');
+                    console.log('loadingInfoNew:', loadingInfoNew);
+                    console.log('progressBarNew:', progressBarNew);
                     return;
                 }
 
+                console.log('Elementos encontrados, iniciando carregamento...');
                 loadingInfo.innerText = "Carregando áudios...";
 
                 const audioKeys = Object.keys(dustinAudios);
@@ -1322,6 +1330,7 @@
                 loadedAssets = 0;
 
                 console.log(`Carregando ${totalAssets} áudios`);
+                console.log('Chamando updateLoadingProgress...');
                 updateLoadingProgress();
 
                 // Carregar cada áudio
@@ -1342,6 +1351,18 @@
                     }, (index + 1) * 500); // Escalonar o carregamento
                 });
             }
+
+            // Iniciar carregamento após DOM estar pronto
+            console.log('Iniciando sistema de carregamento...');
+            console.log('Elementos disponíveis:');
+            console.log('loadingInfo:', loadingInfo);
+            console.log('progressBar:', progressBar);
+            console.log('dustinAudios:', typeof dustinAudios !== 'undefined' ? dustinAudios : 'undefined');
+
+            setTimeout(() => {
+                console.log('Executando carregamento de áudios...');
+                startAudioLoadingLocal();
+            }, 1000);
 
             enterButton.addEventListener('click', async () => {
                 console.log('Botão de entrada clicado. Tentando iniciar AR...');
