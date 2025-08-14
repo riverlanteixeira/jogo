@@ -944,7 +944,7 @@
             <div id="progress-bar-container">
                 <div id="progress-bar"></div>
             </div>
-            <p id="loading-info">3Carregando assets...</p>
+            <p id="loading-info">4Carregando assets...</p>
 
             <button id="enter-button" class="ui-element">Entrar no Mundo Invertido</button>
         </div>
@@ -1183,13 +1183,27 @@
             callScreen = document.getElementById('call-screen');
             answerButton = document.getElementById('answer-button');
             declineButton = document.getElementById('decline-button');
+            callTimer = document.getElementById('call-timer');
+            callStatus = document.getElementById('call-status');
 
             // Debug: verificar se elementos foram encontrados
             console.log('Elementos da ligação:');
             console.log('callScreen:', callScreen);
             console.log('answerButton:', answerButton);
             console.log('declineButton:', declineButton);
+            console.log('callTimer:', callTimer);
+            console.log('callStatus:', callStatus);
 
+            // Sistema de áudios do Dustin para cada missão
+            dustinAudios = {
+                'walkie-talkie': 'assets/audio/dustin-missao-1-completa.mp3',
+                'bike': 'assets/audio/dustin-missao-2-completa.mp3',
+                'compass': 'assets/audio/dustin-missao-3-completa.mp3',
+                'baseball-bat': 'assets/audio/dustin-missao-4-completa.mp3',
+                'machado': 'assets/audio/dustin-missao-5-completa.mp3',
+                'demogorgon': 'assets/audio/dustin-missao-6-completa.mp3',
+                'will-mundo-invertido': 'assets/audio/dustin-missao-7-completa.mp3'
+            };
 
             const collectibles = {
                 'walkie-talkie': false,
@@ -1238,16 +1252,7 @@
 
             const PROXIMITY_RADIUS = 10; // 10 metros
 
-            // Sistema de áudios do Dustin para cada missão
-            const dustinAudios = {
-                'walkie-talkie': 'assets/audio/dustin-missao-1-completa.mp3',
-                'bike': 'assets/audio/dustin-missao-2-completa.mp3',
-                'compass': 'assets/audio/dustin-missao-3-completa.mp3',
-                'baseball-bat': 'assets/audio/dustin-missao-4-completa.mp3',
-                'machado': 'assets/audio/dustin-missao-5-completa.mp3',
-                'demogorgon': 'assets/audio/dustin-missao-6-completa.mp3',
-                'will-mundo-invertido': 'assets/audio/dustin-missao-7-completa.mp3'
-            };
+            // dustinAudios movido para dentro do DOMContentLoaded
 
             // Sistema de carregamento real de assets
             let totalAssets = 0;
@@ -1297,15 +1302,18 @@
                 }
             }
 
-            // Elementos da ligação (serão definidos no DOMContentLoaded)
-            let callScreen, answerButton, declineButton;
-            const callTimer = document.getElementById('call-timer');
-            const callStatus = document.getElementById('call-status');
+            // Variáveis da ligação
             let dustinAudio = null;
             let callStartTime = null;
             let callTimerInterval = null;
             let vibrationInterval = null;
             let ringtonePlaying = false;
+
+            // Elementos da ligação (definidos no DOMContentLoaded)
+            let callScreen, answerButton, declineButton, callTimer, callStatus;
+
+            // Áudios do Dustin (definidos no DOMContentLoaded)
+            let dustinAudios;
 
             // Definição duplicada removida
 
