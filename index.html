@@ -1033,19 +1033,38 @@
             let vibrationInterval = null;
             let ringtonePlaying = false;
 
+            // Sistema de áudios do Dustin para cada missão
+            const dustinAudios = {
+                'walkie-talkie': 'assets/audio/dustin-missao-1-completa.mp3',
+                'bike': 'assets/audio/dustin-missao-2-completa.mp3',
+                'compass': 'assets/audio/dustin-missao-3-completa.mp3',
+                'baseball-bat': 'assets/audio/dustin-missao-4-completa.mp3',
+                'machado': 'assets/audio/dustin-missao-5-completa.mp3',
+                'demogorgon': 'assets/audio/dustin-missao-6-completa.mp3',
+                'will-mundo-invertido': 'assets/audio/dustin-missao-7-completa.mp3'
+            };
+
             // Pré-carregar áudio do Dustin para evitar atrasos
-            let preloadedAudio = null;
-            function preloadDustinAudio() {
-                preloadedAudio = new Audio('assets/audio/dustin-missao-1.mp3');
-                preloadedAudio.preload = 'auto';
-                preloadedAudio.volume = 0.8;
-                console.log('Áudio do Dustin pré-carregado');
+            let preloadedAudios = {};
+            function preloadDustinAudios() {
+                Object.keys(dustinAudios).forEach(key => {
+                    const audio = new Audio(dustinAudios[key]);
+                    audio.preload = 'auto';
+                    audio.volume = 0.8;
+                    preloadedAudios[key] = audio;
+                });
+                console.log('Áudios do Dustin pré-carregados');
             }
 
-            // Pré-carregar áudio quando a página carregar
-            setTimeout(preloadDustinAudio, 2000);
+            // Pré-carregar áudios quando a página carregar
+            setTimeout(preloadDustinAudios, 2000);
 
-            function showDustinCall() {
+            let currentMissionAudio = 'walkie-talkie'; // Controla qual áudio tocar
+
+            function showDustinCall(missionKey = 'walkie-talkie') {
+                currentMissionAudio = missionKey;
+                console.log('Mostrando ligação do Dustin para missão:', missionKey);
+                
                 // Esconder a UI do jogo e mostrar a tela de ligação
                 document.getElementById('backpack-icon').style.display = 'none';
                 document.getElementById('distance-meter').classList.remove('show');
@@ -1121,12 +1140,15 @@
                 callScreen.classList.add('call-active');
                 answerButton.classList.remove('calling-animation');
 
-                if (preloadedAudio && preloadedAudio.readyState >= 2) {
-                    dustinAudio = preloadedAudio;
+                // Usar o áudio pré-carregado da missão atual
+                if (preloadedAudios[currentMissionAudio] && preloadedAudios[currentMissionAudio].readyState >= 2) {
+                    dustinAudio = preloadedAudios[currentMissionAudio];
+                    console.log('Usando áudio pré-carregado para:', currentMissionAudio);
                 } else {
-                    dustinAudio = new Audio('assets/audio/dustin-missao-1.mp3');
+                    dustinAudio = new Audio(dustinAudios[currentMissionAudio]);
                     dustinAudio.preload = 'auto';
                     dustinAudio.volume = 0.8;
+                    console.log('Carregando áudio dinamicamente para:', currentMissionAudio);
                 }
 
                 callStatus.innerText = "Chamada em andamento...";
@@ -1208,10 +1230,29 @@
 
                 if (wasDeclined) {
                     showToast("Você recusou a chamada, mas a missão continua!", 'warning', 4000);
+                } else {
+                    // Mostrar mensagem de continuação baseada na missão atual
+                    const missionMessages = {
+                        'walkie-talkie': 'Agora procure a bicicleta do Will!',
+                        'bike': 'Encontre a bússola para navegar!',
+                        'compass': 'Pegue o taco de baseball para se defender!',
+                        'baseball-bat': 'Encontre o machado!',
+                        'machado': 'Cuidado! Procure o Demogorgon!',
+                        'demogorgon': 'Última missão: encontre Will no Mundo Invertido!',
+                        'will-mundo-invertido': 'Missão completa!'
+                    };
+                    
+                    if (missionMessages[currentMissionAudio]) {
+                        showToast(missionMessages[currentMissionAudio], 'success', 4000);
+                    }
                 }
 
-                // Continuar para o próximo objeto
-                prepareForNextObject();
+                // Continuar para o próximo objeto ou mostrar vitória
+                if (currentMissionAudio === 'will-mundo-invertido') {
+                    setTimeout(showVictoryScreen, 2000);
+                } else {
+                    prepareForNextObject();
+                }
             }
 
             simulateLoading();
@@ -1575,9 +1616,13 @@
                 }
                 updateBackpackContent();
 
-                // *** LÓGICA ALTERADA: Chamar Dustin após coletar o walkie-talkie ***
-                if (id === 'walkie-talkie') {
-                    showDustinCall();
+                // Sistema de ligações progressivas do Dustin
+                if (dustinAudios[id]) {
+                    console.log('Iniciando ligação do Dustin para item:', id);
+                    // Delay de 3 segundos para dar tempo do jogador ver o item sendo coletado
+                    setTimeout(() => {
+                        showDustinCall(id);
+                    }, 3000);
                 } else {
                     prepareForNextObject();
                 }
