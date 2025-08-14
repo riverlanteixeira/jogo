@@ -944,7 +944,7 @@
             <div id="progress-bar-container">
                 <div id="progress-bar"></div>
             </div>
-            <p id="loading-info">4Carregando assets...</p>
+            <p id="loading-info">5Carregando assets...</p>
 
             <button id="enter-button" class="ui-element">Entrar no Mundo Invertido</button>
         </div>
@@ -1169,6 +1169,12 @@
 
         console.log('Script carregado, aguardando DOM...');
 
+        // Elementos da ligação (declarados globalmente, atribuídos no DOMContentLoaded)
+        let callScreen, answerButton, declineButton, callTimer, callStatus;
+
+        // Áudios do Dustin (declarados globalmente, atribuídos no DOMContentLoaded)
+        let dustinAudios;
+
         document.addEventListener('DOMContentLoaded', () => {
             console.log('DOM carregado - primeiro listener');
             const sceneEl = document.getElementById('ar-scene');
@@ -1309,11 +1315,7 @@
             let vibrationInterval = null;
             let ringtonePlaying = false;
 
-            // Elementos da ligação (definidos no DOMContentLoaded)
-            let callScreen, answerButton, declineButton, callTimer, callStatus;
-
-            // Áudios do Dustin (definidos no DOMContentLoaded)
-            let dustinAudios;
+            // Declarações movidas para antes do DOMContentLoaded
 
             // Definição duplicada removida
 
