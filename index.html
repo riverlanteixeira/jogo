@@ -438,6 +438,163 @@
             visibility: hidden !important;
         }
 
+        /* Interface de Combate */
+        #combat-screen {
+            background: linear-gradient(180deg, #1a0000 0%, #330000 50%, #1a0000 100%);
+            color: #fff;
+        }
+
+        #combat-content {
+            padding: 20px;
+            max-width: 400px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        #combat-header h2 {
+            color: #e72626;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px rgba(231, 38, 38, 0.5);
+        }
+
+        #combat-health-bars {
+            margin: 20px 0;
+        }
+
+        .health-container {
+            margin: 15px 0;
+        }
+
+        .health-label {
+            font-size: 1.1em;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .health-bar {
+            width: 100%;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2px solid #333;
+        }
+
+        .health-fill {
+            height: 100%;
+            transition: width 0.3s ease;
+            border-radius: 8px;
+        }
+
+        .player-health {
+            background: linear-gradient(90deg, #4CAF50 0%, #45a049 100%);
+        }
+
+        .demogorgon-health {
+            background: linear-gradient(90deg, #e72626 0%, #d32f2f 100%);
+        }
+
+        .health-text {
+            font-size: 0.9em;
+            margin-top: 5px;
+            color: #ccc;
+        }
+
+        #combat-instructions {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(231, 38, 38, 0.2);
+            border-radius: 10px;
+            border: 1px solid #e72626;
+        }
+
+        #combat-instructions p {
+            margin: 5px 0;
+            font-size: 1em;
+        }
+
+        #combat-stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+        }
+
+        .combat-stat {
+            text-align: center;
+        }
+
+        .stat-label {
+            display: block;
+            font-size: 0.9em;
+            color: #ccc;
+            margin-bottom: 5px;
+        }
+
+        .combat-stat span:last-child {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #e72626;
+        }
+
+        #combat-result {
+            margin-top: 20px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 15px;
+            border: 2px solid #e72626;
+        }
+
+        #combat-result h3 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+
+        #combat-result.victory h3 {
+            color: #4CAF50;
+        }
+
+        #combat-result.defeat h3 {
+            color: #e72626;
+        }
+
+        #combat-continue {
+            margin-top: 15px;
+            padding: 12px 25px;
+            background: #e72626;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        #combat-continue:hover {
+            background: #d32f2f;
+            transform: scale(1.05);
+        }
+
+        /* Animações de combate */
+        .combat-active {
+            animation: combat-pulse 1s ease-in-out infinite alternate;
+        }
+
+        @keyframes combat-pulse {
+            0% {
+                transform: scale(1);
+                filter: brightness(1);
+            }
+
+            100% {
+                transform: scale(1.1);
+                filter: brightness(1.3) drop-shadow(0 0 20px #e72626);
+            }
+        }
+
         /* Tela de ligação do Dustin */
         #call-screen {
             background: linear-gradient(180deg, #0a0a0a 0%, #1a1a1a 50%, #0a0a0a 100%);
@@ -835,7 +992,7 @@
                         <span class="item-status">❌</span>
                     </li>
                     <li data-item="demogorgon">
-                        👹 Demogorgon
+                        👹 Demogorgon (Combate)
                         <span class="item-status">❌</span>
                     </li>
                     <li data-item="will-mundo-invertido">
@@ -851,49 +1008,98 @@
             </div>
         </div>
 
-        <div id="call-screen" class="ui-screen ui-element hidden">
-            <div id="call-status-bar">📱 Ligação recebida</div>
+        <!-- Interface de Combate contra Demogorgon -->
+        <div id="combat-screen" class="ui-screen ui-element hidden">
+            <div id="combat-content">
+                <div id="combat-header">
+                    <h2>⚔️ COMBATE CONTRA DEMOGORGON</h2>
+                </div>
 
-            <div class="signal-bars">
-                <div class="signal-bar"></div>
-                <div class="signal-bar"></div>
-                <div class="signal-bar"></div>
-                <div class="signal-bar"></div>
-            </div>
+                <div id="combat-health-bars">
+                    <div class="health-container">
+                        <div class="health-label">👦 Você</div>
+                        <div class="health-bar">
+                            <div id="player-health-fill" class="health-fill player-health"></div>
+                        </div>
+                        <div class="health-text" id="player-health-text">100/100</div>
+                    </div>
 
-            <div id="call-content">
-                <img id="dustin-avatar" src="assets/img/dustin.png" alt="Dustin Henderson">
-                <div id="caller-name">Dustin Henderson</div>
-                <div id="caller-subtitle">Hawkins, Indiana</div>
-                <div id="call-status">Chamada recebida...</div>
-                <div id="call-timer">00:00</div>
+                    <div class="health-container">
+                        <div class="health-label">👹 Demogorgon</div>
+                        <div class="health-bar">
+                            <div id="demogorgon-health-fill" class="health-fill demogorgon-health"></div>
+                        </div>
+                        <div class="health-text" id="demogorgon-health-text">100/100</div>
+                    </div>
+                </div>
 
-                <div id="call-buttons">
-                    <button id="decline-button" class="call-button ui-element">✖</button>
-                    <button id="answer-button" class="call-button ui-element calling-animation">📞</button>
+                <div id="combat-instructions">
+                    <p>🎯 Toque rapidamente no Demogorgon para atacar!</p>
+                    <p>⚡ Seja rápido antes que ele te ataque!</p>
+                </div>
+
+                <div id="combat-stats">
+                    <div class="combat-stat">
+                        <span class="stat-label">Acertos:</span>
+                        <span id="combat-hits-count">0</span>
+                    </div>
+                    <div class="combat-stat">
+                        <span class="stat-label">Tempo:</span>
+                        <span id="combat-timer">0s</span>
+                    </div>
+                </div>
+
+                <div id="combat-result" class="hidden">
+                    <h3 id="combat-result-title"></h3>
+                    <p id="combat-result-message"></p>
+                    <button id="combat-continue" class="ui-element">Continuar</button>
                 </div>
             </div>
         </div>
 
-        <div id="victory-screen" class="ui-screen ui-element hidden">
-            <h1>Você Conseguiu!</h1>
-            <p>Todos os itens foram encontrados.</p>
+        <div id="call-screen" class="ui-screen ui-element hidden"></div>
+        <div id="call-status-bar">📱 Ligação recebida</div>
+
+        <div class="signal-bars">
+            <div class="signal-bar"></div>
+            <div class="signal-bar"></div>
+            <div class="signal-bar"></div>
+            <div class="signal-bar"></div>
         </div>
 
-        <!-- Medidor de distância na tela principal -->
-        <div id="distance-meter">
-            <span class="distance-icon">🎯</span>
-            <span class="distance-text" id="distance-text">Aguardando GPS...</span>
+        <div id="call-content">
+            <img id="dustin-avatar" src="assets/img/dustin.png" alt="Dustin Henderson">
+            <div id="caller-name">Dustin Henderson</div>
+            <div id="caller-subtitle">Hawkins, Indiana</div>
+            <div id="call-status">Chamada recebida...</div>
+            <div id="call-timer">00:00</div>
+
+            <div id="call-buttons">
+                <button id="decline-button" class="call-button ui-element">✖</button>
+                <button id="answer-button" class="call-button ui-element calling-animation">📞</button>
+            </div>
         </div>
+    </div>
 
-        <!-- Container de notificações toast -->
-        <div id="toast-container"></div>
+    <div id="victory-screen" class="ui-screen ui-element hidden">
+        <h1>Você Conseguiu!</h1>
+        <p>Todos os itens foram encontrados.</p>
+    </div>
 
-        <!-- Botão de debug temporário -->
-        <button id="debug-collect"
-            style="position: fixed; bottom: 20px; right: 20px; z-index: 30; padding: 10px; background: #ff0000; color: white; border: none; border-radius: 5px; display: none;">
-            Coletar Item (Debug)
-        </button>
+    <!-- Medidor de distância na tela principal -->
+    <div id="distance-meter">
+        <span class="distance-icon">🎯</span>
+        <span class="distance-text" id="distance-text">Aguardando GPS...</span>
+    </div>
+
+    <!-- Container de notificações toast -->
+    <div id="toast-container"></div>
+
+    <!-- Botão de debug temporário -->
+    <button id="debug-collect"
+        style="position: fixed; bottom: 20px; right: 20px; z-index: 30; padding: 10px; background: #ff0000; color: white; border: none; border-radius: 5px; display: none;">
+        Coletar Item (Debug)
+    </button>
     </div>
 
     <script>
@@ -978,7 +1184,7 @@
                 compass: false,
                 'baseball-bat': false,
                 machado: false,
-                demogorgon: false,
+                demogorgon: false, // Será tratado como combate
                 'will-mundo-invertido': false
             };
             let foundCollectibles = 0;
@@ -995,6 +1201,15 @@
             let hitTestSource = null;
             let geolocationWatchId = null;
             let currentLocation = null;
+
+            // Sistema de combate contra Demogorgon
+            let combatActive = false;
+            let demogorgonHealth = 100;
+            let playerHealth = 100;
+            let combatHits = 0;
+            let combatStartTime = 0;
+            let combatTimer = null;
+            let demogorgonAttackTimer = null;
             let locationUnlocked = [false, false, false, false, false, false, false]; // Controla se cada localização foi desbloqueada
 
             // Coordenadas dos objetos (latitude, longitude)
@@ -1048,7 +1263,7 @@
 
                 if (loadingInfo) {
                     if (loadedAssets < totalAssets) {
-                        loadingInfo.innerText = `Carregando assets... ${loadedAssets}/${totalAssets} (${progress}%)`;
+                        loadingInfo.innerText = `1Carregando assets... ${loadedAssets}/${totalAssets} (${progress}%)`;
                     } else if (!assetsLoaded) {
                         assetsLoaded = true;
                         loadingInfo.innerText = "Todos os assets carregados! Pronto para jogar offline.";
@@ -1724,12 +1939,274 @@
                 updateBackpackContent();
 
                 // Sistema de ligações progressivas do Dustin
-                if (dustinAudios[id]) {
+                if (id === 'demogorgon') {
+                    // Iniciar combate contra Demogorgon em vez de coleta normal
+                    console.log('Iniciando combate contra Demogorgon!');
+                    setTimeout(() => {
+                        startDemogorgonCombat();
+                    }, 1000);
+                } else if (dustinAudios[id]) {
                     console.log('Iniciando ligação do Dustin para item:', id);
                     // Delay de 3 segundos para dar tempo do jogador ver o item sendo coletado
                     setTimeout(() => {
                         showDustinCall(id);
                     }, 3000);
+                } else {
+                    prepareForNextObject();
+                }
+            }
+
+            // ===== SISTEMA DE COMBATE CONTRA DEMOGORGON =====
+
+            function startDemogorgonCombat() {
+                console.log('Iniciando combate contra Demogorgon!');
+
+                // Resetar variáveis de combate
+                combatActive = true;
+                demogorgonHealth = 100;
+                playerHealth = 100;
+                combatHits = 0;
+                combatStartTime = Date.now();
+
+                // Esconder UI do jogo
+                document.getElementById('backpack-icon').style.display = 'none';
+                document.getElementById('distance-meter').classList.remove('show');
+
+                // Mostrar tela de combate
+                const combatScreen = document.getElementById('combat-screen');
+                combatScreen.classList.remove('hidden');
+
+                // Configurar interface de combate
+                updateCombatUI();
+
+                // Configurar cliques no Demogorgon para atacar
+                setupDemogorgonCombatListeners();
+
+                // Iniciar timer de combate
+                startCombatTimer();
+
+                // Iniciar ataques do Demogorgon
+                startDemogorgonAttacks();
+
+                // Fazer o Demogorgon "se mover" (animação)
+                animateDemogorgon();
+            }
+
+            function setupDemogorgonCombatListeners() {
+                const demogorgonEntity = document.getElementById('demogorgon');
+                if (demogorgonEntity) {
+                    // Remover listeners antigos
+                    demogorgonEntity.removeEventListener('click', handleDemogorgonAttack);
+
+                    // Adicionar listener de combate
+                    demogorgonEntity.addEventListener('click', handleDemogorgonAttack);
+
+                    // Também escutar cliques na tela quando Demogorgon está visível
+                    document.addEventListener('click', handleCombatClick);
+                }
+            }
+
+            function handleDemogorgonAttack(event) {
+                if (!combatActive) return;
+
+                event.stopPropagation();
+                event.preventDefault();
+
+                // Jogador atacou o Demogorgon
+                const damage = Math.floor(Math.random() * 15) + 10; // 10-25 de dano
+                demogorgonHealth = Math.max(0, demogorgonHealth - damage);
+                combatHits++;
+
+                console.log(`Jogador atacou! Dano: ${damage}, Vida do Demogorgon: ${demogorgonHealth}`);
+
+                // Vibração de feedback
+                vibrateDevice([50, 30, 50]);
+
+                // Atualizar UI
+                updateCombatUI();
+
+                // Verificar se Demogorgon foi derrotado
+                if (demogorgonHealth <= 0) {
+                    endCombat(true); // Vitória
+                }
+            }
+
+            function handleCombatClick(event) {
+                if (!combatActive) return;
+                if (event.target.closest('.ui-element')) return;
+
+                // Verificar se clicou próximo ao Demogorgon
+                const demogorgonEntity = document.getElementById('demogorgon');
+                if (demogorgonEntity && demogorgonEntity.getAttribute('visible') === 'true') {
+                    // Simular ataque se clicou na área do AR
+                    handleDemogorgonAttack(event);
+                }
+            }
+
+            function startCombatTimer() {
+                combatTimer = setInterval(() => {
+                    if (!combatActive) return;
+
+                    const elapsed = Math.floor((Date.now() - combatStartTime) / 1000);
+                    document.getElementById('combat-timer').innerText = elapsed + 's';
+
+                    // Combate tem limite de tempo (60 segundos)
+                    if (elapsed >= 60) {
+                        endCombat(false); // Derrota por tempo
+                    }
+                }, 1000);
+            }
+
+            function startDemogorgonAttacks() {
+                if (!combatActive) return;
+
+                // Demogorgon ataca a cada 3-5 segundos
+                const attackDelay = Math.random() * 2000 + 3000; // 3-5 segundos
+
+                demogorgonAttackTimer = setTimeout(() => {
+                    if (combatActive) {
+                        demogorgonAttack();
+                        startDemogorgonAttacks(); // Próximo ataque
+                    }
+                }, attackDelay);
+            }
+
+            function demogorgonAttack() {
+                if (!combatActive) return;
+
+                const damage = Math.floor(Math.random() * 10) + 5; // 5-15 de dano
+                playerHealth = Math.max(0, playerHealth - damage);
+
+                console.log(`Demogorgon atacou! Dano: ${damage}, Vida do jogador: ${playerHealth}`);
+
+                // Vibração de dano recebido
+                vibrateDevice([200, 100, 200, 100, 200]);
+
+                // Atualizar UI
+                updateCombatUI();
+
+                // Verificar se jogador foi derrotado
+                if (playerHealth <= 0) {
+                    endCombat(false); // Derrota
+                }
+            }
+
+            function animateDemogorgon() {
+                if (!combatActive) return;
+
+                const demogorgonEntity = document.getElementById('demogorgon');
+                if (demogorgonEntity) {
+                    // Adicionar classe de animação de combate
+                    demogorgonEntity.classList.add('combat-active');
+
+                    // Fazer o Demogorgon "pulsar" durante o combate
+                    demogorgonEntity.setAttribute('animation',
+                        'property: scale; to: 1.2 1.2 1.2; dur: 1000; dir: alternate; loop: true');
+                }
+            }
+
+            function updateCombatUI() {
+                // Atualizar barras de vida
+                const playerHealthPercent = (playerHealth / 100) * 100;
+                const demogorgonHealthPercent = (demogorgonHealth / 100) * 100;
+
+                document.getElementById('player-health-fill').style.width = playerHealthPercent + '%';
+                document.getElementById('demogorgon-health-fill').style.width = demogorgonHealthPercent + '%';
+
+                // Atualizar textos de vida
+                document.getElementById('player-health-text').innerText = `${playerHealth}/100`;
+                document.getElementById('demogorgon-health-text').innerText = `${demogorgonHealth}/100`;
+
+                // Atualizar estatísticas
+                document.getElementById('combat-hits-count').innerText = combatHits;
+            }
+
+            function endCombat(victory) {
+                console.log('Combate finalizado. Vitória:', victory);
+
+                combatActive = false;
+
+                // Parar timers
+                if (combatTimer) {
+                    clearInterval(combatTimer);
+                    combatTimer = null;
+                }
+
+                if (demogorgonAttackTimer) {
+                    clearTimeout(demogorgonAttackTimer);
+                    demogorgonAttackTimer = null;
+                }
+
+                // Remover listeners de combate
+                document.removeEventListener('click', handleCombatClick);
+
+                // Parar animação do Demogorgon
+                const demogorgonEntity = document.getElementById('demogorgon');
+                if (demogorgonEntity) {
+                    demogorgonEntity.classList.remove('combat-active');
+                    demogorgonEntity.removeAttribute('animation');
+                }
+
+                // Mostrar resultado
+                showCombatResult(victory);
+            }
+
+            function showCombatResult(victory) {
+                const resultDiv = document.getElementById('combat-result');
+                const titleElement = document.getElementById('combat-result-title');
+                const messageElement = document.getElementById('combat-result-message');
+
+                if (victory) {
+                    resultDiv.className = 'victory';
+                    titleElement.innerText = '🎉 VITÓRIA!';
+                    messageElement.innerText = `Você derrotou o Demogorgon com ${combatHits} ataques! O Mundo Invertido está mais seguro agora.`;
+                } else {
+                    resultDiv.className = 'defeat';
+                    titleElement.innerText = '💀 DERROTA';
+                    messageElement.innerText = 'O Demogorgon foi mais forte desta vez. Mas não desista, você ainda pode continuar sua missão!';
+                }
+
+                resultDiv.classList.remove('hidden');
+
+                // Configurar botão de continuar
+                document.getElementById('combat-continue').addEventListener('click', () => {
+                    finishCombatSequence(victory);
+                }, { once: true });
+            }
+
+            function finishCombatSequence(victory) {
+                // Esconder tela de combate
+                document.getElementById('combat-screen').classList.add('hidden');
+
+                // Marcar Demogorgon como "coletado" independente do resultado
+                collectibles['demogorgon'] = true;
+                foundCollectibles++;
+
+                // Esconder o Demogorgon da cena
+                const demogorgonEntity = document.getElementById('demogorgon');
+                if (demogorgonEntity) {
+                    demogorgonEntity.setAttribute('visible', 'false');
+                }
+
+                // Atualizar UI da mochila
+                const listItem = document.querySelector(`#collectibles-list li[data-item="demogorgon"]`);
+                if (listItem) {
+                    listItem.classList.add('found');
+                    const statusIcon = listItem.querySelector('.item-status');
+                    if (statusIcon) statusIcon.innerText = victory ? '⚔️' : '💀';
+                }
+
+                updateBackpackContent();
+
+                // Mostrar UI do jogo novamente
+                document.getElementById('backpack-icon').style.display = 'flex';
+                document.getElementById('distance-meter').classList.add('show');
+
+                // Continuar com a ligação do Dustin
+                if (dustinAudios['demogorgon']) {
+                    setTimeout(() => {
+                        showDustinCall('demogorgon');
+                    }, 2000);
                 } else {
                     prepareForNextObject();
                 }
