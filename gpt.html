@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <title>Stranger Things AR — Caça aos Objetos (Versão Otimizada)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="description" content="Versão otimizada do jogo AR com missões, mochila, progresso salvo e melhorias de UX." />
+
+  <!-- A-Frame (Three.js embutido) -->
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script>
+    // Garante THREE no escopo global (alguns browsers exigem)
+    window.THREE = window.THREE || AFRAME.THREE;
+  </script>
+
+  <style>
+    :root{
+      --st-red:#e72626; --bg:#000; --fg:#fff; --muted:#ccc; --ok:#4CAF50; --warn:#ff9800;
+    }
+    html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji"}
+    /* Overlay base */
+    #overlay{position:fixed;inset:0;z-index:10;pointer-events:none}
+    .ui{pointer-events:auto}
+    .screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#000;color:#fff;transition:opacity .35s ease}
+    .screen.hidden{opacity:0;pointer-events:none}
+
+    #logo{width:min(80%,420px);margin-bottom:20px}
+    .bar{width:min(80%,420px);height:18px;border:2px solid var(--st-red);border-radius:10px;overflow:hidden}
+    .bar>div{height:100%;width:0;background:var(--st-red);transition:width .25s ease}
+    .muted{color:var(--muted)}
+    .btn{margin-top:28px;padding:14px 24px;border:0;border-radius:10px;background:var(--st-red);color:#fff;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer}
+
+    /* HUD Ícones */
+    #backpack{position:fixed;top:16px;right:16px;width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#8B4513,#A0522D);display:none;align-items:center;justify-content:center;color:#fff;font-size:26px;box-shadow:0 8px 24px rgba(0,0,0,.35);z-index:15;border:2px solid #654321}
+    #backpack-badge{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;background:var(--st-red);border:2px solid #fff;color:#fff;font:700 12px/22px system-ui;text-align:center}
+
+    /* Modal mochila */
+    #bag-modal{position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:20}
+    #bag-card{width:min(92vw,520px);max-height:82vh;overflow:auto;border:2px solid var(--st-red);border-radius:14px;background:linear-gradient(135deg,#171717,#232323);color:#fff;padding:18px 18px 22px}
+    #bag-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-bottom:10px;border-bottom:1px solid #3a3a3a}
+    #bag-list{list-style:none;margin:12px 0 0;padding:0}
+    #bag-list li{display:flex;align-items:center;gap:10px;margin:8px 0;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.06);border-left:4px solid var(--st-red)}
+    #bag-list li.done{background:rgba(76,175,80,.18);border-left-color:var(--ok);color:#b9e7bc}
+    #bag-progress{margin:10px 0 14px}
+    #bag-progress .bar{width:100%}
+
+    /* Distância */
+    #distance{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:15;display:none;min-width:240px;max-width:88vw;padding:12px 18px;border-radius:28px;border:2px solid var(--st-red);background:rgba(0,0,0,.88);color:#fff;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+    #distance.ok{border-color:var(--ok);background:rgba(76,175,80,.18)}
+
+    /* Toast */
+    #toasts{position:fixed;left:50%;bottom:84px;transform:translateX(-50%);z-index:25;pointer-events:none}
+    .toast{max-width:80vw;margin:8px 0;padding:12px 16px;border-radius:20px;border:2px solid var(--st-red);background:rgba(0,0,0,.9);color:#fff;opacity:0;transform:translateY(16px);transition:.25s}
+    .toast.show{opacity:1;transform:translateY(0)}
+    .toast.ok{border-color:var(--ok);background:rgba(76,175,80,.18)}
+    .toast.warn{border-color:var(--warn);background:rgba(255,152,0,.18)}
+
+    /* Esconde UI AR padrão */
+    .a-enter-vr-button,.a-enter-ar-button,.a-vr-mode-ui{display:none!important}
+
+    /* Chamadas do Dustin (com legendas e repetir/pular) */
+    #call{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(180deg,#0a0a0a,#1a1a1a,#0a0a0a);color:#fff}
+    #call.hidden{opacity:0;pointer-events:none}
+    #avatar{width:160px;height:160px;border-radius:50%;border:6px solid var(--st-red);margin-bottom:18px;box-shadow:0 0 40px rgba(231,38,38,.45),inset 0 0 16px rgba(0,0,0,.35)}
+    #call-status{color:var(--st-red);margin:6px 0 16px}
+    #timer{display:none;margin-bottom:12px;padding:6px 12px;border-radius:14px;border:1px solid #333;background:rgba(0,0,0,.45);font-family:ui-monospace,Menlo,Consolas,monospace}
+    #subs{min-height:42px;max-width:86vw;text-align:center;color:#eaeaea}
+    #call-actions{display:flex;gap:48px;margin-top:18px}
+    .cbtn{width:74px;height:74px;border-radius:50%;border:0;cursor:pointer;font-size:26px;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+    #answer{background:linear-gradient(135deg,#4CAF50,#3f9646)}
+    #decline{background:linear-gradient(135deg,#f44336,#d32f2f)}
+    #repeat,#skip{margin-top:14px;padding:8px 12px;border-radius:10px;border:1px solid #333;background:#111;color:#eee}
+
+    /* Retículo */
+    #reticle{pointer-events:none}
+
+    /* Partículas simples (CSS) */
+    .spark{position:fixed;width:6px;height:6px;border-radius:50%;background:#fff;opacity:.85;animation:spark .8s ease-out forwards}
+    @keyframes spark{to{transform:translateY(-80px) scale(.2);opacity:0}}
+  </style>
+</head>
+<body>
+  <!-- Cena AR -->
+  <a-scene id="scene" renderer="logarithmicDepthBuffer: true; colorManagement: true;" background="color: transparent;"
+           webxr="requiredFeatures: hit-test, local-floor; optionalFeatures: dom-overlay; overlayElement: #overlay;"
+           vr-mode-ui="enabled: false">
+    <a-assets id="assets">
+      <!-- MODELOS (mantém mesmos caminhos do seu projeto) -->
+      <a-asset-item id="mdl-bike" src="assets/models/bicicleta-will.glb"></a-asset-item>
+      <a-asset-item id="mdl-compass" src="assets/models/compass.glb"></a-asset-item>
+      <a-asset-item id="mdl-bat" src="assets/models/baseball_bat.glb"></a-asset-item>
+      <a-asset-item id="mdl-axe" src="assets/models/machado.glb"></a-asset-item>
+      <a-asset-item id="mdl-radio" src="assets/models/walkie_talkie.glb"></a-asset-item>
+      <a-asset-item id="mdl-demo" src="assets/models/demogorgon.glb"></a-asset-item>
+      <a-asset-item id="mdl-will" src="assets/models/will_byers_mundo_invertido.glb"></a-asset-item>
+
+      <!-- Imagens -->
+      <img id="img-logo" src="assets/img/stranger-things-logo.png"/>
+      <img id="img-dustin" src="assets/img/dustin.png"/>
+
+      <!-- Áudios do Dustin (pode manter seus arquivos) -->
+      <audio id="aud-m1" src="assets/audio/dustin-missao-1-completa.mp3" preload="auto"></audio>
+      <audio id="aud-m2" src="assets/audio/dustin-missao-2-completa.mp3" preload="auto"></audio>
+      <audio id="aud-m3" src="assets/audio/dustin-missao-3-completa.mp3" preload="auto"></audio>
+      <audio id="aud-m4" src="assets/audio/dustin-missao-4-completa.mp3" preload="auto"></audio>
+      <audio id="aud-m5" src="assets/audio/dustin-missao-5-completa.mp3" preload="auto"></audio>
+      <audio id="aud-m6" src="assets/audio/dustin-missao-6-completa.mp3" preload="auto"></audio>
+      <audio id="aud-m7" src="assets/audio/dustin-missao-7-completa.mp3" preload="auto"></audio>
+    </a-assets>
+
+    <!-- Luzes -->
+    <a-light type="ambient" color="#FFF" intensity="0.75"></a-light>
+    <a-light type="directional" color="#FFF" intensity="0.85" position="-1 2 1"></a-light>
+
+    <!-- Câmera + cursor invisível (ativado quando focado) -->
+    <a-camera fov="80">
+      <a-cursor id="cursor" geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03"
+                material="color: #e72626; shader: flat" visible="false"
+                raycaster="objects: .collectible"
+                animation__click="property: scale; startEvents: click; dur: 140; from: 0.1 0.1 0.1; to: 1 1 1"></a-cursor>
+    </a-camera>
+
+    <!-- Retículo de colocação -->
+    <a-entity id="reticle" visible="false" geometry="primitive: ring; radius-inner: 0.05; radius-outer: 0.1"
+              material="color: #e72626; shader: flat"></a-entity>
+
+    <!-- Objetos colecionáveis -->
+    <a-entity id="walkie-talkie" class="collectible" gltf-model="#mdl-radio" visible="false"></a-entity>
+    <a-entity id="bike" class="collectible" gltf-model="#mdl-bike" visible="false"></a-entity>
+    <a-entity id="compass" class="collectible" gltf-model="#mdl-compass" visible="false"></a-entity>
+    <a-entity id="baseball-bat" class="collectible" gltf-model="#mdl-bat" visible="false"></a-entity>
+    <a-entity id="machado" class="collectible" gltf-model="#mdl-axe" visible="false"></a-entity>
+    <a-entity id="demogorgon" class="collectible" gltf-model="#mdl-demo" visible="false"></a-entity>
+    <a-entity id="will-mundo-invertido" class="collectible" gltf-model="#mdl-will" visible="false"></a-entity>
+  </a-scene>
+
+  <!-- Overlay / HUD -->
+  <div id="overlay">
+    <!-- Loading -->
+    <div id="loading" class="screen ui">
+      <img id="logo" src="assets/img/stranger-things-logo.png" alt="Stranger Things" />
+      <div class="bar"><div id="pfill"></div></div>
+      <p id="ptext" class="muted">Preparando assets...</p>
+      <button id="enter" class="btn" style="display:none">Entrar no Mundo Invertido</button>
+    </div>
+
+    <!-- Chamadas do Dustin -->
+    <div id="call" class="screen ui hidden">
+      <img id="avatar" src="assets/img/dustin.png" alt="Dustin" />
+      <div id="caller" style="font-size:22px;margin-bottom:4px">Dustin Henderson</div>
+      <div id="call-status">Chamada recebida...</div>
+      <div id="timer">00:00</div>
+      <div id="subs"></div>
+      <div id="call-actions">
+        <button id="decline" class="cbtn">✖</button>
+        <button id="answer" class="cbtn">📞</button>
+      </div>
+      <div>
+        <button id="repeat" class="ui">Repetir fala</button>
+        <button id="skip" class="ui">Pular</button>
+      </div>
+    </div>
+
+    <!-- Vitória -->
+    <div id="victory" class="screen ui hidden">
+      <h1 style="color:var(--st-red);text-transform:uppercase;margin-bottom:8px">Missão Concluída</h1>
+      <p>Você encontrou todos os itens. 👏</p>
+      <button class="btn" onclick="localStorage.removeItem('arGameProgress');location.reload()">Reiniciar</button>
+    </div>
+
+    <!-- HUD: mochila + distância + toasts -->
+    <div id="backpack" class="ui">🎒<div id="backpack-badge">0/7</div></div>
+    <div id="distance" class="ui"><span id="dist-text">Aguardando GPS...</span></div>
+    <div id="toasts"></div>
+
+    <!-- Modal mochila -->
+    <div id="bag-modal" class="ui">
+      <div id="bag-card">
+        <div id="bag-head">
+          <div style="display:flex;align-items:center;gap:8px"><span style="font-size:20px">🎒</span><strong>Mochila</strong></div>
+          <button id="bag-close" class="ui" style="background:var(--st-red);color:#fff;border:0;border-radius:10px;padding:6px 10px">Fechar</button>
+        </div>
+        <div id="bag-progress">
+          <div class="muted" id="bag-txt">0 de 7 itens</div>
+          <div class="bar"><div id="bag-fill"></div></div>
+        </div>
+        <ul id="bag-list">
+          <li data-item="walkie-talkie">📻 Walkie-Talkie <span style="margin-left:auto">❌</span></li>
+          <li data-item="bike">🚲 Bicicleta <span style="margin-left:auto">❌</span></li>
+          <li data-item="compass">🧭 Bússola <span style="margin-left:auto">❌</span></li>
+          <li data-item="baseball-bat">⚾ Taco de Baseball <span style="margin-left:auto">❌</span></li>
+          <li data-item="machado">🪓 Machado <span style="margin-left:auto">❌</span></li>
+          <li data-item="demogorgon">👹 Demogorgon <span style="margin-left:auto">❌</span></li>
+          <li data-item="will-mundo-invertido">👦 Will (Mundo Invertido) <span style="margin-left:auto">❌</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // ======= Config =======
+  const NAMES = { 'walkie-talkie':'Walkie-Talkie', bike:'Bicicleta', compass:'Bússola', 'baseball-bat':'Taco de Baseball', machado:'Machado', demogorgon:'Demogorgon', 'will-mundo-invertido':'Will (Mundo Invertido)'};
+  const SCALES = { 'walkie-talkie':0.8, bike:0.4, compass:8, 'baseball-bat':1.5, machado:5, demogorgon:0.8, 'will-mundo-invertido':1 };
+  const AUDIO_BY_ITEM = { 'walkie-talkie':'#aud-m1', bike:'#aud-m2', compass:'#aud-m3', 'baseball-bat':'#aud-m4', machado:'#aud-m5', demogorgon:'#aud-m6', 'will-mundo-invertido':'#aud-m7' };
+
+  // Missões: usando seus pontos do bairro Pedra Branca (Palhoça/SC)
+  const MISSIONS = [
+    { id:'walkie-talkie', name:NAMES['walkie-talkie'], lat:-27.630876175110835, lng:-48.67969706159946 }, // Casa
+    { id:'bike',          name:NAMES.bike,             lat:-27.631489762564254, lng:-48.67942932776006 }, // Poste
+    { id:'compass',       name:NAMES.compass,          lat:-27.629651561773642, lng:-48.68112592253786 }, // Lago
+    { id:'baseball-bat',  name:NAMES['baseball-bat'],  lat:-27.624013123132134, lng:-48.681243155505165 }, // UNISUL
+    { id:'machado',       name:NAMES.machado,          lat:-27.622632847004397, lng:-48.6807748434082 },  // Ponte
+    { id:'demogorgon',    name:NAMES.demogorgon,       lat:-27.62172576455045,  lng:-48.6799944586445 },  // Floresta
+    { id:'will-mundo-invertido', name:NAMES['will-mundo-invertido'], lat:-27.62225085741092, lng:-48.67746514219232 } // Praça
+  ];
+
+  const RADIUS_M = 12; // raio para desbloquear (ajustado p/ GPS real)
+
+  // ======= Estado =======
+  let state = {
+    idx: 0, // missão atual
+    placed: false, // objeto atual já está colocado na cena
+    found: {}, // mapa id->bool
+    foundCount: 0,
+    gps: null,
+    unlocked: MISSIONS.map(()=>false)
+  };
+
+  // Carrega progresso salvo
+  const saved = JSON.parse(localStorage.getItem('arGameProgress')||'null');
+  if(saved && saved.version===1){ state = Object.assign(state, saved); }
+
+  function save(){ localStorage.setItem('arGameProgress', JSON.stringify(Object.assign({version:1}, state))); }
+
+  // ======= Util =======
+  const el = sel => document.querySelector(sel);
+  const scene = el('#scene');
+  const reticle = el('#reticle');
+
+  function toast(msg, cls=''){ const c=el('#toasts'); const t=document.createElement('div'); t.className=`toast ${cls}`; t.textContent=msg; c.appendChild(t); requestAnimationFrame(()=>t.classList.add('show')); setTimeout(()=>{t.classList.remove('show'); setTimeout(()=>t.remove(),250)}, 3000); }
+  function vibrate(p){ if(navigator.vibrate) navigator.vibrate(p); }
+  function distMeters(a,b){ const R=6371000; const dLat=(b.lat-a.lat)*Math.PI/180; const dLng=(b.lng-a.lng)*Math.PI/180; const s1=Math.sin(dLat/2), s2=Math.sin(dLng/2); const A=s1*s1+Math.cos(a.lat*Math.PI/180)*Math.cos(b.lat*Math.PI/180)*s2*s2; return 2*R*Math.atan2(Math.sqrt(A),Math.sqrt(1-A)); }
+
+  // Partículas simples
+  function sparks(x,y,n=10){ for(let i=0;i<n;i++){ const s=document.createElement('div'); s.className='spark'; s.style.left=(x+Math.random()*30-15)+'px'; s.style.top=(y+Math.random()*16-8)+'px'; document.body.appendChild(s); setTimeout(()=>s.remove(),800); } }
+
+  // ======= UI: Loading =======
+  const pfill = el('#pfill');
+  const ptext = el('#ptext');
+  const enterBtn = el('#enter');
+
+  // Pré-carrega assets do a-assets com eventos nativos
+  function preloadAssets(){
+    return new Promise(resolve=>{
+      const assets = el('#assets');
+      const items = assets.querySelectorAll('a-asset-item, audio, img');
+      let total = items.length, done=0;
+      const upd = () => { done++; const pct=Math.round(done/total*100); pfill.style.width=pct+'%'; ptext.textContent = `Carregando assets... ${done}/${total} (${pct}%)`; if(done>=total) resolve(); };
+      items.forEach(it=>{
+        if(it.tagName==='A-ASSET-ITEM') it.addEventListener('loaded', upd, {once:true});
+        else it.addEventListener('loadeddata', upd, {once:true});
+        // fallback se não disparar
+        setTimeout(upd, 8000);
+      });
+    });
+  }
+
+  (async function boot(){
+    await preloadAssets();
+    ptext.textContent = 'Tudo pronto!';
+    el('#loading .bar').style.display='none';
+    enterBtn.style.display='inline-block';
+  })();
+
+  enterBtn.addEventListener('click', async ()=>{
+    enterBtn.disabled=true; ptext.textContent='Inicializando AR...';
+    try{
+      if(!navigator.xr) throw new Error('WebXR não suportado no navegador.');
+      if(location.protocol!=='https:') throw new Error('É necessário HTTPS (GitHub Pages já usa).');
+      await scene.enterAR(); // A-Frame alterna para AR
+    }catch(e){
+      ptext.textContent='Erro: '+e.message; enterBtn.textContent='Tentar novamente'; enterBtn.disabled=false;
+    }
+  });
+
+  scene.addEventListener('enter-vr', ()=>initGame());
+  scene.addEventListener('exit-vr', ()=>{
+    // volta para loading mantendo progresso
+    el('#loading').classList.remove('hidden');
+    ptext.textContent='Você saiu do AR.'; enterBtn.textContent='Entrar novamente'; enterBtn.disabled=false;
+  });
+
+  // ======= Game Init =======
+  let xrHitSource=null;
+  function initGame(){
+    el('#loading').classList.add('hidden');
+    el('#backpack').style.display='flex';
+    el('#distance').style.display='block';
+    setupBackpack();
+    setupGeolocation();
+    setupClickHandlers();
+    requestHitTest();
+    refreshBagUI();
+    updateDistanceHUD();
+
+    // Se já havia um objeto colocado em progresso salvo, repõe ao entrar em AR
+    if(state.placed===false) canPlaceIfHit = true;
+  }
+
+  // ======= Backpack / Progresso =======
+  const bagBtn = el('#backpack');
+  const bagBadge = el('#backpack-badge');
+  const bagModal = el('#bag-modal');
+  const bagClose = el('#bag-close');
+  function setupBackpack(){
+    bagBtn.onclick = ()=>{ bagModal.style.display='flex'; refreshBagUI(); };
+    bagClose.onclick = ()=>{ bagModal.style.display='none'; };
+  }
+  function refreshBagUI(){
+    bagBadge.textContent = `${state.foundCount}/7`;
+    el('#bag-txt').textContent = `${state.foundCount} de 7 itens`;
+    el('#bag-fill').style.width = (state.foundCount/7*100)+'%';
+    el('#bag-list').querySelectorAll('li').forEach(li=>{
+      const id = li.getAttribute('data-item');
+      const ok = !!state.found[id];
+      li.classList.toggle('done', ok);
+      li.querySelector('span').textContent = ok?'✅':'❌';
+    });
+  }
+
+  // ======= Geolocalização =======
+  let geoWatch=null;
+  function setupGeolocation(){
+    if(!navigator.geolocation){ toast('Geolocalização não suportada','warn'); return; }
+    const opts={ enableHighAccuracy:true, timeout:10000, maximumAge:1000 };
+    navigator.geolocation.getCurrentPosition(p=>{ state.gps = {lat:p.coords.latitude, lng:p.coords.longitude}; updateDistanceHUD(); }, console.warn, opts);
+    geoWatch = navigator.geolocation.watchPosition(p=>{ state.gps = {lat:p.coords.latitude, lng:p.coords.longitude}; updateDistanceHUD(); }, console.warn, opts);
+  }
+
+  function updateDistanceHUD(){
+    const hud = el('#dist-text');
+    if(state.idx>=MISSIONS.length){ el('#distance').classList.add('ok'); hud.textContent='✅ Todas as missões concluídas'; return; }
+    if(!state.gps){ hud.textContent='Aguardando GPS...'; return; }
+    const m = MISSIONS[state.idx];
+    const d = distMeters(state.gps, {lat:m.lat,lng:m.lng});
+    const nice = d>1000? (d/1000).toFixed(1)+' km' : Math.round(d)+' m';
+    const unlocked = d<=RADIUS_M;
+    el('#distance').classList.toggle('ok', unlocked || state.unlocked[state.idx]);
+    hud.textContent = (unlocked||state.unlocked[state.idx])? `✅ ${m.name} desbloqueado` : `${m.name}: ${nice}`;
+    if(unlocked && !state.unlocked[state.idx]){ state.unlocked[state.idx]=true; vibrate([250,150,250]); toast(`${m.name} desbloqueado!`, 'ok'); save(); }
+  }
+
+  // ======= Hit Test / Colocação =======
+  let canPlaceIfHit = false;
+  async function requestHitTest(){
+    const xr = scene.renderer.xr; const ses = xr.getSession(); if(!ses) return;
+    try{
+      const ref = await ses.requestReferenceSpace('viewer');
+      xrHitSource = await ses.requestHitTestSource({space:ref});
+      scene.renderer.setAnimationLoop(onXRFrame);
+    }catch(e){ console.error(e); toast('Erro ao detectar superfície','warn'); }
+  }
+
+  function onXRFrame(t,frame){
+    if(!frame || !xrHitSource) return;
+    const hitRes = frame.getHitTestResults(xrHitSource);
+    if(hitRes.length){
+      const pose = hitRes[0].getPose(scene.renderer.xr.getReferenceSpace());
+      if(!pose) return;
+      reticle.setAttribute('visible', true);
+      reticle.object3D.matrix.fromArray(pose.transform.matrix);
+      reticle.object3D.matrix.decompose(reticle.object3D.position, reticle.object3D.quaternion, reticle.object3D.scale);
+      if(canPlaceIfHit && state.unlocked[state.idx] && !state.placed){ placeCurrentAtPose(pose); }
+    }else{
+      reticle.setAttribute('visible', false);
+    }
+    // A-Frame precisa deste render quando usamos setAnimationLoop
+    scene.renderer.render(scene.object3D, scene.camera);
+  }
+
+  function placeCurrentAtPose(pose){
+    const id = MISSIONS[state.idx].id;
+    const ent = document.getElementById(id);
+    ent.object3D.matrix.fromArray(pose.transform.matrix);
+    ent.object3D.matrix.decompose(ent.object3D.position, ent.object3D.quaternion, ent.object3D.scale);
+    const s = SCALES[id]||1; ent.object3D.scale.set(s,s,s);
+    ent.setAttribute('visible', true);
+    // animação de destaque
+    ent.setAttribute('animation__spin', 'property: rotation; to: 0 360 0; loop: true; dur: 6000; easing: linear');
+    ent.setAttribute('animation__pulse', 'property: scale; dir: alternate; dur: 1100; loop: true; to: '+(s*1.06)+' '+(s*1.06)+' '+(s*1.06));
+    state.placed = true; canPlaceIfHit=false; save();
+    toast(`${NAMES[id]} encontrado! Toque para coletar.`, 'ok');
+  }
+
+  // ======= Interação =======
+  function setupClickHandlers(){
+    // Clique na cena: destaca o objeto atual, se presente
+    scene.addEventListener('click', (ev)=>{
+      if(state.idx>=MISSIONS.length) return;
+      const id = MISSIONS[state.idx].id; const ent=document.getElementById(id);
+      if(ent && ent.getAttribute('visible')){ highlight(ent); }
+    });
+
+    // Clique nos objetos: coleta
+    Object.keys(NAMES).forEach(id=>{
+      const e = document.getElementById(id);
+      e.addEventListener('click', ()=>tryCollect(id));
+      e.addEventListener('touchstart', (ev)=>{ ev.stopPropagation(); tryCollect(id); }, {passive:true});
+      e.addEventListener('mouseenter', ()=> el('#cursor').setAttribute('visible', true));
+      e.addEventListener('mouseleave', ()=> el('#cursor').setAttribute('visible', false));
+    });
+
+    // Após entrar em AR, permite posicionar assim que achar superfície
+    canPlaceIfHit = true;
+  }
+
+  function highlight(ent){
+    ent.emit('pulse'); // anima existente
+    // feedback visual na tela
+    const r = reticle.object3D.position; const pt = scene.camera.projectionMatrix; // só para efeito
+    sparks(innerWidth/2, innerHeight-120, 8);
+  }
+
+  function tryCollect(id){
+    // só deixa coletar o item da missão atual e se visível
+    if(MISSIONS[state.idx].id!==id) { toast(`Agora você precisa do ${MISSIONS[state.idx].name}.`); return; }
+    const ent = document.getElementById(id);
+    if(!ent || ent.getAttribute('visible')!==true) return;
+
+    // coleta
+    ent.setAttribute('visible','false'); ent.removeAttribute('animation__spin'); ent.removeAttribute('animation__pulse');
+    state.found[id]=true; state.foundCount++; save(); refreshBagUI(); vibrate([100,60,120]);
+
+    // chamada do Dustin
+    startCallFlow(id);
+  }
+
+  // ======= Fluxo de Chamadas (com legendas, repetir, pular) =======
+  const callScreen = el('#call');
+  const callStatus = el('#call-status');
+  const callTimer = el('#timer');
+  const btnAns = el('#answer');
+  const btnDec = el('#decline');
+  const btnRep = el('#repeat');
+  const btnSkip = el('#skip');
+  const subs = el('#subs');
+  let currentAudio=null, callInt=null, startT=null;
+
+  const SUBS_BY_ITEM = {
+    'walkie-talkie':["Beleza, você achou o rádio.","Agora precisamos da bicicleta do Will."],
+    'bike':["Ótimo! Com a bike podemos ir mais rápido.","Procure uma bússola por perto."],
+    'compass':["Bússola na mão!","Siga para o taco de baseball."],
+    'baseball-bat':["Boa defesa!","Agora encontre o machado."],
+    'machado':["Ficando sério...","Atenção com o Demogorgon!"],
+    'demogorgon':["Uau! Você encarou o bicho.","Última etapa: resgatar o Will."],
+    'will-mundo-invertido':["Conseguimos! O Will está salvo."]
+  };
+
+  function showCall(){ callScreen.classList.remove('hidden'); }
+  function hideCall(){ callScreen.classList.add('hidden'); subs.textContent=''; callStatus.textContent='Chamada recebida...'; callTimer.style.display='none'; clearInterval(callInt); callInt=null; startT=null; }
+
+  function startCallFlow(itemId){
+    // mostra tela e toca áudio
+    showCall();
+    btnAns.onclick = ()=>answer(itemId);
+    btnDec.onclick = ()=>{ vibrate([100,80,100]); endCall(true); };
+    btnRep.onclick = ()=>{ if(currentAudio){ currentAudio.currentTime=0; currentAudio.play(); } };
+    btnSkip.onclick = ()=>{ endCall(false,true); };
+  }
+
+  function answer(itemId){
+    vibrate(80); callStatus.textContent='Conectando...';
+    callTimer.style.display='block';
+    setTimeout(()=>{ callStatus.textContent='Chamada em andamento...'; }, 500);
+
+    // timer
+    startT = Date.now(); callInt = setInterval(()=>{
+      const s = Math.floor((Date.now()-startT)/1000); const m=(s/60|0).toString().padStart(2,'0'); const ss=(s%60).toString().padStart(2,'0'); callTimer.textContent=`${m}:${ss}`;
+    },1000);
+
+    // áudio
+    const sel = AUDIO_BY_ITEM[itemId];
+    currentAudio = sel ? document.querySelector(sel) : null;
+    if(currentAudio){ currentAudio.currentTime=0; currentAudio.volume=0.85; currentAudio.play().catch(()=>{});
+      // legendas simples em sequência
+      const lines = SUBS_BY_ITEM[itemId]||[]; let i=0; subs.textContent=lines[i]||'';
+      const subInt = setInterval(()=>{ i++; if(i>=lines.length){ clearInterval(subInt); } else { subs.textContent=lines[i]; } }, 2500);
+      currentAudio.onended = ()=> endCall(false);
+      currentAudio.onerror = ()=> endCall(false);
+    }else{
+      // sem áudio, encerra rápido
+      setTimeout(()=>endCall(false), 2000);
+    }
+  }
+
+  function endCall(declined=false, skipped=false){
+    hideCall();
+    // prepara próxima missão
+    state.idx++; state.placed=false; save();
+    if(state.idx>=MISSIONS.length){ finishGame(); return; }
+    const next = MISSIONS[state.idx].name; toast(skipped?`Avançando. Próximo: ${next}`:`Agora vá até ${next}.`);
+    updateDistanceHUD(); canPlaceIfHit = true;
+  }
+
+  function finishGame(){
+    try{ if(geoWatch) navigator.geolocation.clearWatch(geoWatch); }catch{}
+    el('#backpack').style.display='none'; el('#bag-modal').style.display='none';
+    el('#victory').classList.remove('hidden');
+  }
+
+  // ======= Qualidade de vida =======
+  // Evita scroll/bounce do navegador em toques na HUD
+  ['touchmove','gesturestart'].forEach(ev=>document.addEventListener(ev, e=>{ if(e.target.closest('#overlay')) e.preventDefault(); }, {passive:false}));
+
+  // Dica inicial (se progresso zerado)
+  if(!state.foundCount && state.idx===0){ setTimeout(()=>toast('Vá até a área marcada para liberar o primeiro item.'), 1200); }
+
+  </script>
+</body>
+</html>
