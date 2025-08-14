@@ -944,7 +944,7 @@
             <div id="progress-bar-container">
                 <div id="progress-bar"></div>
             </div>
-            <p id="loading-info">Carregando assets...</p>
+            <p id="loading-info">3Carregando assets...</p>
 
             <button id="enter-button" class="ui-element">Entrar no Mundo Invertido</button>
         </div>
@@ -1276,7 +1276,7 @@
 
                 if (loadingInfo) {
                     if (loadedAssets < totalAssets) {
-                        loadingInfo.innerText = `2Carregando assets... ${loadedAssets}/${totalAssets} (${progress}%)`;
+                        loadingInfo.innerText = `Carregando assets... ${loadedAssets}/${totalAssets} (${progress}%)`;
                     } else if (!assetsLoaded) {
                         assetsLoaded = true;
                         loadingInfo.innerText = "Todos os assets carregados! Pronto para jogar offline.";
