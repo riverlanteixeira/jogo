@@ -785,7 +785,7 @@
             <div id="progress-bar-container">
                 <div id="progress-bar"></div>
             </div>
-            <p id="loading-info">2Carregando assets...</p>
+            <p id="loading-info">Carregando assets...</p>
 
             <button id="enter-button" class="ui-element">Entrar no Mundo Invertido</button>
         </div>
@@ -1007,18 +1007,105 @@
 
             const PROXIMITY_RADIUS = 10; // 10 metros
 
-            function simulateLoading() {
-                let progress = 0;
-                const interval = setInterval(() => {
-                    progress += 25;
-                    progressBar.style.width = progress + '%';
-                    if (progress >= 100) {
-                        clearInterval(interval);
-                        loadingInfo.innerText = "Pronto para iniciar!";
-                        document.getElementById('progress-bar-container').style.display = 'none';
-                        enterButton.style.display = 'block';
+            // Sistema de carregamento real de assets
+            let totalAssets = 0;
+            let loadedAssets = 0;
+            let assetsLoaded = false;
+            let preloadedAudios = {};
+
+            function startRealLoading() {
+                loadingInfo.innerText = "Carregando modelos 3D...";
+
+                // Lista de todos os assets que precisam ser carregados
+                const modelAssets = [
+                    'bike-model',
+                    'compass-model',
+                    'baseball-bat-model',
+                    'machado-model',
+                    'walkie-talkie-model',
+                    'demogorgon-model',
+                    'will-mundo-invertido-model'
+                ];
+
+                const audioAssets = Object.values(dustinAudios);
+
+                totalAssets = modelAssets.length + audioAssets.length;
+                loadedAssets = 0;
+
+                console.log(`Iniciando carregamento de ${totalAssets} assets`);
+
+                // Carregar modelos 3D
+                modelAssets.forEach(assetId => {
+                    const assetElement = document.getElementById(assetId);
+                    if (assetElement) {
+                        assetElement.addEventListener('loaded', () => {
+                            loadedAssets++;
+                            updateLoadingProgress();
+                            console.log(`Modelo ${assetId} carregado (${loadedAssets}/${totalAssets})`);
+                        });
+
+                        assetElement.addEventListener('error', (error) => {
+                            console.error(`Erro ao carregar modelo ${assetId}:`, error);
+                            loadedAssets++; // Contar como carregado para não travar
+                            updateLoadingProgress();
+                        });
                     }
-                }, 300);
+                });
+
+                // Carregar áudios
+                loadingInfo.innerText = "Carregando áudios...";
+                Object.keys(dustinAudios).forEach(key => {
+                    const audioSrc = dustinAudios[key];
+                    const audio = new Audio(audioSrc);
+                    audio.preload = 'auto';
+                    audio.volume = 0.8;
+
+                    const onAudioLoaded = () => {
+                        loadedAssets++;
+                        updateLoadingProgress();
+                        console.log(`Áudio ${key} carregado (${loadedAssets}/${totalAssets})`);
+                        audio.removeEventListener('canplaythrough', onAudioLoaded);
+                        audio.removeEventListener('error', onAudioError);
+                    };
+
+                    const onAudioError = (error) => {
+                        console.error(`Erro ao carregar áudio ${key}:`, error);
+                        loadedAssets++; // Contar como carregado para não travar
+                        updateLoadingProgress();
+                        audio.removeEventListener('canplaythrough', onAudioLoaded);
+                        audio.removeEventListener('error', onAudioError);
+                    };
+
+                    audio.addEventListener('canplaythrough', onAudioLoaded);
+                    audio.addEventListener('error', onAudioError);
+
+                    // Armazenar referência para uso posterior
+                    preloadedAudios[key] = audio;
+                });
+
+                // Timeout de segurança para evitar travamento
+                setTimeout(() => {
+                    if (!assetsLoaded) {
+                        console.warn('Timeout de carregamento atingido, forçando conclusão');
+                        loadedAssets = totalAssets;
+                        updateLoadingProgress();
+                    }
+                }, 30000); // 30 segundos timeout
+            }
+
+            function updateLoadingProgress() {
+                const progress = Math.round((loadedAssets / totalAssets) * 100);
+                progressBar.style.width = progress + '%';
+
+                if (loadedAssets < totalAssets) {
+                    loadingInfo.innerText = `Carregando assets... ${loadedAssets}/${totalAssets} (${progress}%)`;
+                } else if (!assetsLoaded) {
+                    assetsLoaded = true;
+                    loadingInfo.innerText = "Todos os assets carregados! Pronto para jogar offline.";
+                    document.getElementById('progress-bar-container').style.display = 'none';
+                    enterButton.style.display = 'block';
+                    console.log('Todos os assets carregados com sucesso!');
+                }
             }
 
             // Elementos da ligação
@@ -1044,27 +1131,16 @@
                 'will-mundo-invertido': 'assets/audio/dustin-missao-7-completa.mp3'
             };
 
-            // Pré-carregar áudio do Dustin para evitar atrasos
-            let preloadedAudios = {};
-            function preloadDustinAudios() {
-                Object.keys(dustinAudios).forEach(key => {
-                    const audio = new Audio(dustinAudios[key]);
-                    audio.preload = 'auto';
-                    audio.volume = 0.8;
-                    preloadedAudios[key] = audio;
-                });
-                console.log('Áudios do Dustin pré-carregados');
-            }
+            // Função de pré-carregamento removida - agora integrada ao sistema real
 
-            // Pré-carregar áudios quando a página carregar
-            setTimeout(preloadDustinAudios, 2000);
+            // Pré-carregamento agora é feito pelo sistema real de loading
 
             let currentMissionAudio = 'walkie-talkie'; // Controla qual áudio tocar
 
             function showDustinCall(missionKey = 'walkie-talkie') {
                 currentMissionAudio = missionKey;
                 console.log('Mostrando ligação do Dustin para missão:', missionKey);
-                
+
                 // Esconder a UI do jogo e mostrar a tela de ligação
                 document.getElementById('backpack-icon').style.display = 'none';
                 document.getElementById('distance-meter').classList.remove('show');
@@ -1241,7 +1317,7 @@
                         'demogorgon': 'Última missão: encontre Will no Mundo Invertido!',
                         'will-mundo-invertido': 'Missão completa!'
                     };
-                    
+
                     // Mensagens de missão removidas - Dustin já fornece as instruções
                 }
 
@@ -1253,7 +1329,15 @@
                 }
             }
 
-            simulateLoading();
+            // Aguardar A-Frame carregar antes de iniciar carregamento de assets
+            document.addEventListener('DOMContentLoaded', () => {
+                const scene = document.querySelector('a-scene');
+                if (scene.hasLoaded) {
+                    startRealLoading();
+                } else {
+                    scene.addEventListener('loaded', startRealLoading);
+                }
+            });
 
             enterButton.addEventListener('click', async () => {
                 console.log('Botão de entrada clicado. Tentando iniciar AR...');
@@ -1274,9 +1358,9 @@
                         throw new Error('WebXR não é suportado neste navegador.');
                     }
                     if (window.location.protocol !== 'https:') {
-                         throw new Error('WebXR requer uma conexão segura (HTTPS).');
+                        throw new Error('WebXR requer uma conexão segura (HTTPS).');
                     }
-                    
+
                     await sceneEl.enterAR();
                     // O evento 'enter-vr' vai cuidar da inicialização do jogo
                     // O timeout será limpo no listener 'enter-vr'
@@ -1298,7 +1382,7 @@
                     initGame();
                 }
             });
-            
+
             sceneEl.addEventListener('exit-vr', () => {
                 console.log('Saindo do modo AR.');
                 // Opcional: resetar estado do jogo ou mostrar tela inicial

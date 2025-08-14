@@ -31,6 +31,7 @@ Encontre e colete **7 objetos icônicos** da série:
 - **Modelos 3D otimizados** - Formato GLB para carregamento rápido
 - **Interface responsiva** - Design adaptado para dispositivos móveis
 - **Sistema de notificações** - Feedback visual e sonoro para o jogador
+- **Carregamento offline** - Todos os assets são pré-carregados para jogo offline
 
 ## 📱 Compatibilidade
 
@@ -108,6 +109,30 @@ xrSession.requestHitTestSource({ space: referenceSpace })
   });
 ```
 
+### Sistema de Carregamento Real
+Todos os assets são carregados antes do jogo iniciar, garantindo experiência offline:
+
+```javascript
+function startRealLoading() {
+  const modelAssets = ['bike-model', 'compass-model', ...];
+  const audioAssets = Object.values(dustinAudios);
+  
+  totalAssets = modelAssets.length + audioAssets.length;
+  
+  // Carregar modelos 3D
+  modelAssets.forEach(assetId => {
+    document.getElementById(assetId).addEventListener('loaded', updateProgress);
+  });
+  
+  // Carregar áudios
+  Object.keys(dustinAudios).forEach(key => {
+    const audio = new Audio(dustinAudios[key]);
+    audio.addEventListener('canplaythrough', updateProgress);
+    preloadedAudios[key] = audio;
+  });
+}
+```
+
 ### Sistema de Ligações Progressivas
 Cada objeto coletado dispara uma nova ligação do Dustin com instruções específicas:
 
@@ -150,7 +175,8 @@ AFRAME.registerComponent('collectible-object', {
 - **Ícones**: Emojis temáticos para identificação rápida dos itens
 
 ### Experiência do Usuário
-- **Carregamento progressivo** com barra de progresso visual
+- **Carregamento real** com progresso detalhado de todos os assets
+- **Jogo offline** após carregamento inicial completo
 - **Feedback háptico** através de animações e sons
 - **Interface minimalista** para não interferir na experiência AR
 - **Sistema de notificações** não-intrusivo
