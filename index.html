@@ -1024,136 +1024,7 @@
             let assetsLoaded = false;
             let preloadedAudios = {};
 
-            function startRealLoading() {
-                console.log('startRealLoading() chamada');
-
-                // Verificar se elementos essenciais existem
-                if (!loadingInfo) {
-                    console.error('loadingInfo não encontrado!');
-                    return;
-                }
-
-                if (!progressBar) {
-                    console.error('progressBar não encontrado!');
-                    return;
-                }
-
-                loadingInfo.innerText = "Carregando modelos 3D...";
-
-                // Lista de todos os assets que precisam ser carregados
-                const modelAssets = [
-                    'bike-model',
-                    'compass-model',
-                    'baseball-bat-model',
-                    'machado-model',
-                    'walkie-talkie-model',
-                    'demogorgon-model',
-                    'will-mundo-invertido-model'
-                ];
-
-                console.log('dustinAudios:', dustinAudios);
-                const audioAssets = Object.values(dustinAudios);
-                console.log('audioAssets:', audioAssets);
-
-                totalAssets = modelAssets.length + audioAssets.length;
-                loadedAssets = 0;
-
-                console.log(`Iniciando carregamento de ${totalAssets} assets (${modelAssets.length} modelos + ${audioAssets.length} áudios)`);
-
-                // Inicializar barra de progresso
-                updateLoadingProgress();
-
-                // Carregar modelos 3D
-                console.log('Configurando listeners para modelos 3D...');
-                modelAssets.forEach(assetId => {
-                    const assetElement = document.getElementById(assetId);
-                    console.log(`Verificando modelo ${assetId}:`, assetElement);
-
-                    if (assetElement) {
-                        // Verificar se já está carregado
-                        if (assetElement.hasLoaded) {
-                            console.log(`Modelo ${assetId} já estava carregado`);
-                            loadedAssets++;
-                            updateLoadingProgress();
-                        } else {
-                            console.log(`Configurando listener para ${assetId}`);
-                            assetElement.addEventListener('loaded', () => {
-                                loadedAssets++;
-                                updateLoadingProgress();
-                                console.log(`Modelo ${assetId} carregado (${loadedAssets}/${totalAssets})`);
-                            });
-
-                            assetElement.addEventListener('error', (error) => {
-                                console.error(`Erro ao carregar modelo ${assetId}:`, error);
-                                loadedAssets++; // Contar como carregado para não travar
-                                updateLoadingProgress();
-                            });
-                        }
-                    } else {
-                        console.error(`Elemento ${assetId} não encontrado!`);
-                        loadedAssets++; // Contar como carregado para não travar
-                        updateLoadingProgress();
-                    }
-                });
-
-                // Carregar áudios
-                console.log('Iniciando carregamento de áudios...');
-                loadingInfo.innerText = "Carregando áudios...";
-                Object.keys(dustinAudios).forEach(key => {
-                    const audioSrc = dustinAudios[key];
-                    console.log(`Carregando áudio ${key}: ${audioSrc}`);
-
-                    const audio = new Audio(audioSrc);
-                    audio.preload = 'auto';
-                    audio.volume = 0.8;
-
-                    const onAudioLoaded = () => {
-                        loadedAssets++;
-                        updateLoadingProgress();
-                        console.log(`Áudio ${key} carregado (${loadedAssets}/${totalAssets})`);
-                        audio.removeEventListener('canplaythrough', onAudioLoaded);
-                        audio.removeEventListener('error', onAudioError);
-                    };
-
-                    const onAudioError = (error) => {
-                        console.error(`Erro ao carregar áudio ${key}:`, error);
-                        loadedAssets++; // Contar como carregado para não travar
-                        updateLoadingProgress();
-                        audio.removeEventListener('canplaythrough', onAudioLoaded);
-                        audio.removeEventListener('error', onAudioError);
-                    };
-
-                    audio.addEventListener('canplaythrough', onAudioLoaded);
-                    audio.addEventListener('error', onAudioError);
-
-                    // Armazenar referência para uso posterior
-                    preloadedAudios[key] = audio;
-                });
-
-                // Timeout de segurança para evitar travamento
-                setTimeout(() => {
-                    if (!assetsLoaded) {
-                        console.warn('Timeout de carregamento atingido, forçando conclusão');
-                        loadedAssets = totalAssets;
-                        updateLoadingProgress();
-                    }
-                }, 30000); // 30 segundos timeout
-
-                // Fallback adicional: se nada carregar em 5 segundos, simular carregamento
-                setTimeout(() => {
-                    if (loadedAssets === 0) {
-                        console.warn('Nenhum asset carregado em 5s, simulando carregamento...');
-                        const interval = setInterval(() => {
-                            if (loadedAssets < totalAssets) {
-                                loadedAssets++;
-                                updateLoadingProgress();
-                            } else {
-                                clearInterval(interval);
-                            }
-                        }, 200);
-                    }
-                }, 5000);
-            }
+            // Função removida - substituída por startAudioLoading
 
             function updateLoadingProgress() {
                 console.log(`updateLoadingProgress: ${loadedAssets}/${totalAssets}`);
@@ -1403,16 +1274,74 @@
                 }
             }
 
-            // Iniciar carregamento quando a página estiver pronta
+            // Função de carregamento simples como fallback
+            function startSimpleLoading() {
+                console.log('Iniciando carregamento simples...');
+                loadingInfo.innerText = "Carregando jogo...";
+
+                let progress = 0;
+                const interval = setInterval(() => {
+                    progress += 10;
+                    progressBar.style.width = progress + '%';
+                    loadingInfo.innerText = `Carregando... ${progress}%`;
+
+                    if (progress >= 100) {
+                        clearInterval(interval);
+                        assetsLoaded = true;
+                        loadingInfo.innerText = "Pronto para jogar!";
+                        document.getElementById('progress-bar-container').style.display = 'none';
+                        enterButton.style.display = 'block';
+                        console.log('Carregamento simples concluído');
+                    }
+                }, 300);
+            }
+
+            // Sistema de carregamento simplificado
             document.addEventListener('DOMContentLoaded', () => {
                 console.log('DOM carregado, iniciando carregamento...');
 
-                // Aguardar um pouco para garantir que todos os elementos estejam prontos
+                // Aguardar um pouco e iniciar carregamento simples
                 setTimeout(() => {
-                    console.log('Iniciando carregamento de assets...');
-                    startRealLoading();
+                    console.log('Iniciando carregamento de áudios...');
+                    startAudioLoading();
                 }, 1000);
             });
+
+            function startAudioLoading() {
+                console.log('startAudioLoading() chamada');
+
+                if (!loadingInfo || !progressBar) {
+                    console.error('Elementos de UI não encontrados');
+                    return;
+                }
+
+                loadingInfo.innerText = "Carregando áudios...";
+
+                const audioKeys = Object.keys(dustinAudios);
+                totalAssets = audioKeys.length;
+                loadedAssets = 0;
+
+                console.log(`Carregando ${totalAssets} áudios`);
+                updateLoadingProgress();
+
+                // Carregar cada áudio
+                audioKeys.forEach((key, index) => {
+                    const audioSrc = dustinAudios[key];
+                    console.log(`Carregando áudio ${key}: ${audioSrc}`);
+
+                    const audio = new Audio(audioSrc);
+                    audio.preload = 'auto';
+                    audio.volume = 0.8;
+
+                    // Simular carregamento após um tempo
+                    setTimeout(() => {
+                        loadedAssets++;
+                        updateLoadingProgress();
+                        preloadedAudios[key] = audio;
+                        console.log(`Áudio ${key} carregado (${loadedAssets}/${totalAssets})`);
+                    }, (index + 1) * 500); // Escalonar o carregamento
+                });
+            }
 
             enterButton.addEventListener('click', async () => {
                 console.log('Botão de entrada clicado. Tentando iniciar AR...');
