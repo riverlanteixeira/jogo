@@ -959,7 +959,7 @@
             <div id="progress-bar-container">
                 <div id="progress-bar"></div>
             </div>
-            <p id="loading-info">8Carregando assets...</p>
+            <p id="loading-info">9Carregando assets...</p>
 
             <button id="enter-button" class="ui-element">Entrar no Mundo Invertido</button>
         </div>
@@ -1230,7 +1230,7 @@
 
             // Sistema de combate contra Demogorgon
             let combatActive = false;
-            let demogorgonHealth = 100;
+            let demogorgonHealth = 300; // Vida maior para combate mais longo
             let playerHealth = 100;
             let combatHits = 0;
             let combatStartTime = 0;
@@ -1951,6 +1951,15 @@
             function collectItem(id) {
                 if (collectibles[id]) return;
 
+                // Tratamento especial para o Demogorgon - iniciar combate em vez de coletar
+                if (id === 'demogorgon') {
+                    console.log('Demogorgon encontrado - iniciando combate!');
+                    vibrateDevice([100, 50, 100]);
+                    startDemogorgonCombat();
+                    return; // Não processar como coleta normal
+                }
+
+                // Coleta normal para outros itens
                 collectibles[id] = true;
                 foundCollectibles++;
                 vibrateDevice([100, 50, 100]);
@@ -1970,13 +1979,7 @@
                 updateBackpackContent();
 
                 // Sistema de ligações progressivas do Dustin
-                if (id === 'demogorgon') {
-                    // Iniciar combate contra Demogorgon em vez de coleta normal
-                    console.log('Iniciando combate contra Demogorgon!');
-                    setTimeout(() => {
-                        startDemogorgonCombat();
-                    }, 1000);
-                } else if (dustinAudios[id]) {
+                if (dustinAudios[id]) {
                     console.log('Iniciando ligação do Dustin para item:', id);
                     // Delay de 3 segundos para dar tempo do jogador ver o item sendo coletado
                     setTimeout(() => {
@@ -1994,7 +1997,7 @@
 
                 // Resetar variáveis de combate
                 combatActive = true;
-                demogorgonHealth = 100;
+                demogorgonHealth = 300; // Vida maior para combate mais longo
                 playerHealth = 100;
                 combatHits = 0;
                 combatStartTime = Date.now();
@@ -2162,14 +2165,14 @@
             function updateCombatUI() {
                 // Atualizar barras de vida
                 const playerHealthPercent = (playerHealth / 100) * 100;
-                const demogorgonHealthPercent = (demogorgonHealth / 100) * 100;
+                const demogorgonHealthPercent = (demogorgonHealth / 300) * 100; // Vida máxima 300
 
                 document.getElementById('player-health-fill').style.width = playerHealthPercent + '%';
                 document.getElementById('demogorgon-health-fill').style.width = demogorgonHealthPercent + '%';
 
                 // Atualizar textos de vida
                 document.getElementById('player-health-text').innerText = `${playerHealth}/100`;
-                document.getElementById('demogorgon-health-text').innerText = `${demogorgonHealth}/100`;
+                document.getElementById('demogorgon-health-text').innerText = `${demogorgonHealth}/300`;
 
                 // Atualizar estatísticas
                 document.getElementById('combat-hits-count').innerText = combatHits;
@@ -2223,12 +2226,21 @@
                 resultDiv.classList.remove('hidden');
 
                 // Configurar botão de continuar
-                document.getElementById('combat-continue').addEventListener('click', () => {
-                    finishCombatSequence(victory);
-                }, { once: true });
+                const continueButton = document.getElementById('combat-continue');
+                if (continueButton) {
+                    console.log('Configurando botão continuar para vitória:', victory);
+                    continueButton.addEventListener('click', () => {
+                        console.log('Botão continuar clicado!');
+                        finishCombatSequence(victory);
+                    }, { once: true });
+                } else {
+                    console.error('Botão combat-continue não encontrado!');
+                }
             }
 
             function finishCombatSequence(victory) {
+                console.log('finishCombatSequence chamada com vitória:', victory);
+
                 // Esconder tela de combate
                 document.getElementById('combat-screen').classList.add('hidden');
 
@@ -2255,11 +2267,16 @@
                 // UI do jogo já estava visível durante o combate
 
                 // Continuar com a ligação do Dustin
-                if (dustinAudios['demogorgon']) {
+                console.log('Verificando se há áudio do Dustin para demogorgon...');
+                console.log('dustinAudios:', typeof dustinAudios, dustinAudios);
+
+                if (dustinAudios && dustinAudios['demogorgon']) {
+                    console.log('Iniciando ligação do Dustin em 2 segundos...');
                     setTimeout(() => {
                         showDustinCall('demogorgon');
                     }, 2000);
                 } else {
+                    console.log('Sem áudio do Dustin, preparando próximo objeto...');
                     prepareForNextObject();
                 }
             }
