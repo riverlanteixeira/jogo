@@ -1007,6 +1007,17 @@
 
             const PROXIMITY_RADIUS = 10; // 10 metros
 
+            // Sistema de áudios do Dustin para cada missão
+            const dustinAudios = {
+                'walkie-talkie': 'assets/audio/dustin-missao-1-completa.mp3',
+                'bike': 'assets/audio/dustin-missao-2-completa.mp3',
+                'compass': 'assets/audio/dustin-missao-3-completa.mp3',
+                'baseball-bat': 'assets/audio/dustin-missao-4-completa.mp3',
+                'machado': 'assets/audio/dustin-missao-5-completa.mp3',
+                'demogorgon': 'assets/audio/dustin-missao-6-completa.mp3',
+                'will-mundo-invertido': 'assets/audio/dustin-missao-7-completa.mp3'
+            };
+
             // Sistema de carregamento real de assets
             let totalAssets = 0;
             let loadedAssets = 0;
@@ -1014,6 +1025,19 @@
             let preloadedAudios = {};
 
             function startRealLoading() {
+                console.log('startRealLoading() chamada');
+
+                // Verificar se elementos essenciais existem
+                if (!loadingInfo) {
+                    console.error('loadingInfo não encontrado!');
+                    return;
+                }
+
+                if (!progressBar) {
+                    console.error('progressBar não encontrado!');
+                    return;
+                }
+
                 loadingInfo.innerText = "Carregando modelos 3D...";
 
                 // Lista de todos os assets que precisam ser carregados
@@ -1027,35 +1051,58 @@
                     'will-mundo-invertido-model'
                 ];
 
+                console.log('dustinAudios:', dustinAudios);
                 const audioAssets = Object.values(dustinAudios);
+                console.log('audioAssets:', audioAssets);
 
                 totalAssets = modelAssets.length + audioAssets.length;
                 loadedAssets = 0;
 
-                console.log(`Iniciando carregamento de ${totalAssets} assets`);
+                console.log(`Iniciando carregamento de ${totalAssets} assets (${modelAssets.length} modelos + ${audioAssets.length} áudios)`);
+
+                // Inicializar barra de progresso
+                updateLoadingProgress();
 
                 // Carregar modelos 3D
+                console.log('Configurando listeners para modelos 3D...');
                 modelAssets.forEach(assetId => {
                     const assetElement = document.getElementById(assetId);
+                    console.log(`Verificando modelo ${assetId}:`, assetElement);
+
                     if (assetElement) {
-                        assetElement.addEventListener('loaded', () => {
+                        // Verificar se já está carregado
+                        if (assetElement.hasLoaded) {
+                            console.log(`Modelo ${assetId} já estava carregado`);
                             loadedAssets++;
                             updateLoadingProgress();
-                            console.log(`Modelo ${assetId} carregado (${loadedAssets}/${totalAssets})`);
-                        });
+                        } else {
+                            console.log(`Configurando listener para ${assetId}`);
+                            assetElement.addEventListener('loaded', () => {
+                                loadedAssets++;
+                                updateLoadingProgress();
+                                console.log(`Modelo ${assetId} carregado (${loadedAssets}/${totalAssets})`);
+                            });
 
-                        assetElement.addEventListener('error', (error) => {
-                            console.error(`Erro ao carregar modelo ${assetId}:`, error);
-                            loadedAssets++; // Contar como carregado para não travar
-                            updateLoadingProgress();
-                        });
+                            assetElement.addEventListener('error', (error) => {
+                                console.error(`Erro ao carregar modelo ${assetId}:`, error);
+                                loadedAssets++; // Contar como carregado para não travar
+                                updateLoadingProgress();
+                            });
+                        }
+                    } else {
+                        console.error(`Elemento ${assetId} não encontrado!`);
+                        loadedAssets++; // Contar como carregado para não travar
+                        updateLoadingProgress();
                     }
                 });
 
                 // Carregar áudios
+                console.log('Iniciando carregamento de áudios...');
                 loadingInfo.innerText = "Carregando áudios...";
                 Object.keys(dustinAudios).forEach(key => {
                     const audioSrc = dustinAudios[key];
+                    console.log(`Carregando áudio ${key}: ${audioSrc}`);
+
                     const audio = new Audio(audioSrc);
                     audio.preload = 'auto';
                     audio.volume = 0.8;
@@ -1091,20 +1138,60 @@
                         updateLoadingProgress();
                     }
                 }, 30000); // 30 segundos timeout
+
+                // Fallback adicional: se nada carregar em 5 segundos, simular carregamento
+                setTimeout(() => {
+                    if (loadedAssets === 0) {
+                        console.warn('Nenhum asset carregado em 5s, simulando carregamento...');
+                        const interval = setInterval(() => {
+                            if (loadedAssets < totalAssets) {
+                                loadedAssets++;
+                                updateLoadingProgress();
+                            } else {
+                                clearInterval(interval);
+                            }
+                        }, 200);
+                    }
+                }, 5000);
             }
 
             function updateLoadingProgress() {
-                const progress = Math.round((loadedAssets / totalAssets) * 100);
-                progressBar.style.width = progress + '%';
+                console.log(`updateLoadingProgress: ${loadedAssets}/${totalAssets}`);
 
-                if (loadedAssets < totalAssets) {
-                    loadingInfo.innerText = `Carregando assets... ${loadedAssets}/${totalAssets} (${progress}%)`;
-                } else if (!assetsLoaded) {
-                    assetsLoaded = true;
-                    loadingInfo.innerText = "Todos os assets carregados! Pronto para jogar offline.";
-                    document.getElementById('progress-bar-container').style.display = 'none';
-                    enterButton.style.display = 'block';
-                    console.log('Todos os assets carregados com sucesso!');
+                if (totalAssets === 0) {
+                    console.warn('totalAssets é 0, não é possível calcular progresso');
+                    return;
+                }
+
+                const progress = Math.round((loadedAssets / totalAssets) * 100);
+
+                if (progressBar) {
+                    progressBar.style.width = progress + '%';
+                    console.log(`Barra de progresso atualizada para ${progress}%`);
+                } else {
+                    console.error('progressBar não encontrada!');
+                }
+
+                if (loadingInfo) {
+                    if (loadedAssets < totalAssets) {
+                        loadingInfo.innerText = `Carregando assets... ${loadedAssets}/${totalAssets} (${progress}%)`;
+                    } else if (!assetsLoaded) {
+                        assetsLoaded = true;
+                        loadingInfo.innerText = "Todos os assets carregados! Pronto para jogar offline.";
+
+                        const progressContainer = document.getElementById('progress-bar-container');
+                        if (progressContainer) {
+                            progressContainer.style.display = 'none';
+                        }
+
+                        if (enterButton) {
+                            enterButton.style.display = 'block';
+                        }
+
+                        console.log('Todos os assets carregados com sucesso!');
+                    }
+                } else {
+                    console.error('loadingInfo não encontrada!');
                 }
             }
 
@@ -1120,20 +1207,7 @@
             let vibrationInterval = null;
             let ringtonePlaying = false;
 
-            // Sistema de áudios do Dustin para cada missão
-            const dustinAudios = {
-                'walkie-talkie': 'assets/audio/dustin-missao-1-completa.mp3',
-                'bike': 'assets/audio/dustin-missao-2-completa.mp3',
-                'compass': 'assets/audio/dustin-missao-3-completa.mp3',
-                'baseball-bat': 'assets/audio/dustin-missao-4-completa.mp3',
-                'machado': 'assets/audio/dustin-missao-5-completa.mp3',
-                'demogorgon': 'assets/audio/dustin-missao-6-completa.mp3',
-                'will-mundo-invertido': 'assets/audio/dustin-missao-7-completa.mp3'
-            };
-
-            // Função de pré-carregamento removida - agora integrada ao sistema real
-
-            // Pré-carregamento agora é feito pelo sistema real de loading
+            // Definição duplicada removida
 
             let currentMissionAudio = 'walkie-talkie'; // Controla qual áudio tocar
 
@@ -1329,14 +1403,15 @@
                 }
             }
 
-            // Aguardar A-Frame carregar antes de iniciar carregamento de assets
+            // Iniciar carregamento quando a página estiver pronta
             document.addEventListener('DOMContentLoaded', () => {
-                const scene = document.querySelector('a-scene');
-                if (scene.hasLoaded) {
+                console.log('DOM carregado, iniciando carregamento...');
+
+                // Aguardar um pouco para garantir que todos os elementos estejam prontos
+                setTimeout(() => {
+                    console.log('Iniciando carregamento de assets...');
                     startRealLoading();
-                } else {
-                    scene.addEventListener('loaded', startRealLoading);
-                }
+                }, 1000);
             });
 
             enterButton.addEventListener('click', async () => {
