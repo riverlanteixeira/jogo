@@ -1229,7 +1229,7 @@
                 document.getElementById('distance-meter').classList.add('show');
 
                 if (wasDeclined) {
-                    showToast("Você recusou a chamada, mas a missão continua!", 'warning', 4000);
+                    // Toast de ligação recusada removido
                 } else {
                     // Mostrar mensagem de continuação baseada na missão atual
                     const missionMessages = {
@@ -1242,9 +1242,7 @@
                         'will-mundo-invertido': 'Missão completa!'
                     };
                     
-                    if (missionMessages[currentMissionAudio]) {
-                        showToast(missionMessages[currentMissionAudio], 'success', 4000);
-                    }
+                    // Mensagens de missão removidas - Dustin já fornece as instruções
                 }
 
                 // Continuar para o próximo objeto ou mostrar vitória
@@ -1321,7 +1319,7 @@
                 setupBackpackModal();
                 setupDebugButton();
                 document.getElementById('distance-meter').classList.add('show');
-                showToast("Bem-vindo! Toque na mochila para ver seus objetivos.", 'info', 5000);
+                // Toast de boas-vindas removido
                 setupTouchInteraction();
                 setupGeolocation();
 
@@ -1340,10 +1338,10 @@
                 debugButton.addEventListener('click', () => {
                     if (currentObjectPlaced && currentObjectIndex < objectsToPlace.length) {
                         const currentObjectId = objectsToPlace[currentObjectIndex];
-                        showToast("Item coletado via debug! ✅", 'success', 2000);
+                        // Toast debug removido
                         collectItem(currentObjectId);
                     } else {
-                        showToast("Nenhum objeto disponível para coletar", 'warning', 2000);
+                        // Debug toast removido
                     }
                 });
                 setInterval(() => {
@@ -1462,7 +1460,7 @@
                     vibrateDevice([300, 200, 300]);
                     distanceMeter.classList.add('unlocked');
                     distanceText.innerHTML = `✅ ${currentObjectLocation.name} desbloqueado!`;
-                    showToast(`Você chegou! Procure uma superfície para encontrar ${currentObjectLocation.name}.`, 'success');
+                    // Toast de proximidade removido
                     if (locationStatus) locationStatus.innerHTML = `✅ ${currentObjectLocation.name} desbloqueado!`;
                 } else {
                     distanceMeter.classList.remove('unlocked');
@@ -1491,13 +1489,13 @@
                 if (currentObjectPlaced && objectsToPlace[currentObjectIndex] === objectId) {
                     const objectElement = document.getElementById(objectId);
                     if (objectElement && objectElement.getAttribute('visible') === true) {
-                        showToast("Item coletado! ✅", 'success', 2000);
+                        // Toast de coleta removido
                         collectItem(objectId);
                     }
                 } else {
                     if (currentObjectIndex < objectsToPlace.length) {
                         const expectedName = getObjectName(objectsToPlace[currentObjectIndex]);
-                        showToast(`Procure por ${expectedName} primeiro!`, 'warning', 2500);
+                        // Toast de instrução removido
                     }
                 }
             }
@@ -1513,7 +1511,7 @@
                 const currentObject = document.getElementById(currentObjectId);
                 if (currentObject && currentObject.getAttribute('visible') === true) {
                     let objectName = getObjectName(currentObjectId);
-                    showToast(`Toque no ${objectName} para coletá-lo! 👆`, 'info', 2500);
+                    // Toast de instrução removido
                     highlightObject(currentObject);
                 }
             }
