@@ -439,64 +439,53 @@
             visibility: hidden !important;
         }
 
-        /* Interface de Combate - Overlay que não cobre toda a tela */
+        /* Interface de Combate - Minimalista */
         #combat-screen {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.3);
-            /* Fundo semi-transparente */
+            background: transparent;
+            /* Sem fundo */
             color: #fff;
             pointer-events: none;
             /* Permite cliques através da tela */
             z-index: 15;
         }
 
-        #combat-content {
+        #combat-health-bars {
             position: absolute;
             top: 20px;
             left: 50%;
             transform: translateX(-50%);
-            background: linear-gradient(180deg, #1a0000 0%, #330000 50%, #1a0000 100%);
+            background: rgba(0, 0, 0, 0.8);
             border: 2px solid #e72626;
-            border-radius: 15px;
-            padding: 15px;
-            max-width: 350px;
-            width: 90%;
+            border-radius: 10px;
+            padding: 10px;
+            max-width: 300px;
+            width: 85%;
             text-align: center;
             pointer-events: auto;
             /* Permite cliques apenas no conteúdo */
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-        }
-
-        #combat-header h2 {
-            color: #e72626;
-            font-size: 1.2em;
-            margin-bottom: 10px;
-            text-shadow: 0 0 10px rgba(231, 38, 38, 0.5);
-        }
-
-        #combat-health-bars {
-            margin: 10px 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
         }
 
         .health-container {
-            margin: 8px 0;
+            margin: 5px 0;
         }
 
         .health-label {
-            font-size: 1.1em;
-            margin-bottom: 5px;
+            font-size: 0.9em;
+            margin-bottom: 3px;
             font-weight: bold;
         }
 
         .health-bar {
             width: 100%;
-            height: 15px;
+            height: 12px;
             background: rgba(255, 255, 255, 0.2);
-            border-radius: 8px;
+            border-radius: 6px;
             overflow: hidden;
             border: 1px solid #333;
         }
@@ -516,8 +505,8 @@
         }
 
         .health-text {
-            font-size: 0.9em;
-            margin-top: 5px;
+            font-size: 0.8em;
+            margin-top: 2px;
             color: #ccc;
         }
 
@@ -561,11 +550,18 @@
         }
 
         #combat-result {
-            margin-top: 20px;
-            padding: 20px;
-            background: rgba(0, 0, 0, 0.5);
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
             border-radius: 15px;
             border: 2px solid #e72626;
+            padding: 20px;
+            text-align: center;
+            max-width: 300px;
+            width: 85%;
+            pointer-events: auto;
         }
 
         #combat-result h3 {
@@ -963,7 +959,7 @@
             <div id="progress-bar-container">
                 <div id="progress-bar"></div>
             </div>
-            <p id="loading-info">7Carregando assets...</p>
+            <p id="loading-info">8Carregando assets...</p>
 
             <button id="enter-button" class="ui-element">Entrar no Mundo Invertido</button>
         </div>
@@ -1029,56 +1025,30 @@
             </div>
         </div>
 
-        <!-- Interface de Combate contra Demogorgon -->
+        <!-- Interface de Combate contra Demogorgon - Minimalista -->
         <div id="combat-screen" class="ui-screen ui-element hidden">
-            <div id="combat-content">
-                <div id="combat-header">
-                    <h2>⚔️ COMBATE CONTRA DEMOGORGON</h2>
+            <div id="combat-health-bars">
+                <div class="health-container">
+                    <div class="health-label">👦 Você</div>
+                    <div class="health-bar">
+                        <div id="player-health-fill" class="health-fill player-health"></div>
+                    </div>
+                    <div class="health-text" id="player-health-text">100/100</div>
                 </div>
 
-                <div id="combat-health-bars">
-                    <div class="health-container">
-                        <div class="health-label">👦 Você</div>
-                        <div class="health-bar">
-                            <div id="player-health-fill" class="health-fill player-health"></div>
-                        </div>
-                        <div class="health-text" id="player-health-text">100/100</div>
+                <div class="health-container">
+                    <div class="health-label">👹 Demogorgon</div>
+                    <div class="health-bar">
+                        <div id="demogorgon-health-fill" class="health-fill demogorgon-health"></div>
                     </div>
-
-                    <div class="health-container">
-                        <div class="health-label">👹 Demogorgon</div>
-                        <div class="health-bar">
-                            <div id="demogorgon-health-fill" class="health-fill demogorgon-health"></div>
-                        </div>
-                        <div class="health-text" id="demogorgon-health-text">100/100</div>
-                    </div>
+                    <div class="health-text" id="demogorgon-health-text">100/100</div>
                 </div>
+            </div>
 
-                <div id="combat-instructions">
-                    <p>🎯 Toque na tela para atacar o Demogorgon!</p>
-                    <p>⚡ Continue clicando rapidamente!</p>
-                    <div id="combat-status"
-                        style="margin-top: 10px; padding: 5px; background: rgba(231, 38, 38, 0.3); border-radius: 5px;">
-                        <span id="combat-status-text">🔥 COMBATE ATIVO - CLIQUE PARA ATACAR!</span>
-                    </div>
-                </div>
-
-                <div id="combat-stats">
-                    <div class="combat-stat">
-                        <span class="stat-label">Acertos:</span>
-                        <span id="combat-hits-count">0</span>
-                    </div>
-                    <div class="combat-stat">
-                        <span class="stat-label">Tempo:</span>
-                        <span id="combat-timer">0s</span>
-                    </div>
-                </div>
-
-                <div id="combat-result" class="hidden">
-                    <h3 id="combat-result-title"></h3>
-                    <p id="combat-result-message"></p>
-                    <button id="combat-continue" class="ui-element">Continuar</button>
-                </div>
+            <div id="combat-result" class="hidden">
+                <h3 id="combat-result-title"></h3>
+                <p id="combat-result-message"></p>
+                <button id="combat-continue" class="ui-element">Continuar</button>
             </div>
         </div>
 
@@ -2048,6 +2018,13 @@
                 // Iniciar ataques do Demogorgon
                 startDemogorgonAttacks();
 
+                // Garantir que o Demogorgon permaneça visível durante o combate
+                const demogorgonEntity = document.getElementById('demogorgon');
+                if (demogorgonEntity) {
+                    demogorgonEntity.setAttribute('visible', 'true');
+                    console.log('Demogorgon mantido visível para combate');
+                }
+
                 // Fazer o Demogorgon "se mover" (animação)
                 animateDemogorgon();
             }
@@ -2085,20 +2062,7 @@
                 // Atualizar UI
                 updateCombatUI();
 
-                // Feedback visual de ataque
-                const statusText = document.getElementById('combat-status-text');
-                if (statusText) {
-                    statusText.innerText = `💥 ACERTO! Dano: ${damage}`;
-                    statusText.style.color = '#4CAF50';
-
-                    // Voltar ao normal após 1 segundo
-                    setTimeout(() => {
-                        if (combatActive) {
-                            statusText.innerText = '🔥 COMBATE ATIVO - CLIQUE PARA ATACAR!';
-                            statusText.style.color = '#fff';
-                        }
-                    }, 1000);
-                }
+                // Feedback visual removido - interface minimalista
 
                 // Verificar se Demogorgon foi derrotado
                 if (demogorgonHealth <= 0) {
