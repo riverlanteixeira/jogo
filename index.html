@@ -55,6 +55,7 @@
         }
 
         .ui-screen.hidden {
+            display: none !important;
             opacity: 0;
             pointer-events: none;
         }
@@ -602,6 +603,7 @@
             overflow: hidden;
         }
 
+
         /* Efeito de fundo animado */
         #call-screen::before {
             content: '';
@@ -1057,49 +1059,49 @@
             </div>
         </div>
 
-        <div id="call-screen" class="ui-screen ui-element hidden"></div>
-        <div id="call-status-bar">📱 Ligação recebida</div>
+        <div id="call-screen" class="ui-screen ui-element hidden">
+            <div id="call-status-bar">📱 Ligação recebida</div>
 
-        <div class="signal-bars">
-            <div class="signal-bar"></div>
-            <div class="signal-bar"></div>
-            <div class="signal-bar"></div>
-            <div class="signal-bar"></div>
-        </div>
+            <div class="signal-bars">
+                <div class="signal-bar"></div>
+                <div class="signal-bar"></div>
+                <div class="signal-bar"></div>
+                <div class="signal-bar"></div>
+            </div>
 
-        <div id="call-content">
-            <img id="dustin-avatar" src="assets/img/dustin.png" alt="Dustin Henderson">
-            <div id="caller-name">Dustin Henderson</div>
-            <div id="caller-subtitle">Hawkins, Indiana</div>
-            <div id="call-status">Chamada recebida...</div>
-            <div id="call-timer">00:00</div>
+            <div id="call-content">
+                <img id="dustin-avatar" src="assets/img/dustin.png" alt="Dustin Henderson">
+                <div id="caller-name">Dustin Henderson</div>
+                <div id="caller-subtitle">Hawkins, Indiana</div>
+                <div id="call-status">Chamada recebida...</div>
+                <div id="call-timer">00:00</div>
 
-            <div id="call-buttons">
-                <button id="decline-button" class="call-button ui-element">✖</button>
-                <button id="answer-button" class="call-button ui-element calling-animation">📞</button>
+                <div id="call-buttons">
+                    <button id="decline-button" class="call-button ui-element">✖</button>
+                    <button id="answer-button" class="call-button ui-element calling-animation">📞</button>
+                </div>
             </div>
         </div>
-    </div>
 
-    <div id="victory-screen" class="ui-screen ui-element hidden">
-        <h1>Você Conseguiu!</h1>
-        <p>Todos os itens foram encontrados.</p>
-    </div>
+        <div id="victory-screen" class="ui-screen ui-element hidden">
+            <h1>Você Conseguiu!</h1>
+            <p>Todos os itens foram encontrados.</p>
+        </div>
 
-    <!-- Medidor de distância na tela principal -->
-    <div id="distance-meter">
-        <span class="distance-icon">🎯</span>
-        <span class="distance-text" id="distance-text">Aguardando GPS...</span>
-    </div>
+        <!-- Medidor de distância na tela principal -->
+        <div id="distance-meter">
+            <span class="distance-icon">🎯</span>
+            <span class="distance-text" id="distance-text">Aguardando GPS...</span>
+        </div>
 
-    <!-- Container de notificações toast -->
-    <div id="toast-container"></div>
+        <!-- Container de notificações toast -->
+        <div id="toast-container"></div>
 
-    <!-- Botão de debug temporário -->
-    <button id="debug-collect"
-        style="position: fixed; bottom: 20px; right: 20px; z-index: 30; padding: 10px; background: #ff0000; color: white; border: none; border-radius: 5px; display: none;">
-        Coletar Item (Debug)
-    </button>
+        <!-- Botão de debug temporário -->
+        <button id="debug-collect"
+            style="position: fixed; bottom: 20px; right: 20px; z-index: 30; padding: 10px; background: #ff0000; color: white; border: none; border-radius: 5px; display: none;">
+            Coletar Item (Debug)
+        </button>
     </div>
 
     <script>
@@ -1176,6 +1178,17 @@
             const progressBar = document.getElementById('progress-bar');
             const victoryScreen = document.getElementById('victory-screen');
             const reticle = document.getElementById('reticle');
+
+            // Definir elementos da ligação
+            callScreen = document.getElementById('call-screen');
+            answerButton = document.getElementById('answer-button');
+            declineButton = document.getElementById('decline-button');
+
+            // Debug: verificar se elementos foram encontrados
+            console.log('Elementos da ligação:');
+            console.log('callScreen:', callScreen);
+            console.log('answerButton:', answerButton);
+            console.log('declineButton:', declineButton);
 
 
             const collectibles = {
@@ -1263,7 +1276,7 @@
 
                 if (loadingInfo) {
                     if (loadedAssets < totalAssets) {
-                        loadingInfo.innerText = `1Carregando assets... ${loadedAssets}/${totalAssets} (${progress}%)`;
+                        loadingInfo.innerText = `2Carregando assets... ${loadedAssets}/${totalAssets} (${progress}%)`;
                     } else if (!assetsLoaded) {
                         assetsLoaded = true;
                         loadingInfo.innerText = "Todos os assets carregados! Pronto para jogar offline.";
@@ -1284,10 +1297,8 @@
                 }
             }
 
-            // Elementos da ligação
-            const callScreen = document.getElementById('call-screen');
-            const answerButton = document.getElementById('answer-button');
-            const declineButton = document.getElementById('decline-button');
+            // Elementos da ligação (serão definidos no DOMContentLoaded)
+            let callScreen, answerButton, declineButton;
             const callTimer = document.getElementById('call-timer');
             const callStatus = document.getElementById('call-status');
             let dustinAudio = null;
@@ -1303,18 +1314,35 @@
             function showDustinCall(missionKey = 'walkie-talkie') {
                 currentMissionAudio = missionKey;
                 console.log('Mostrando ligação do Dustin para missão:', missionKey);
+                console.log('callScreen element:', callScreen);
+
+                if (!callScreen) {
+                    console.error('callScreen não encontrado!');
+                    return;
+                }
 
                 // Esconder a UI do jogo e mostrar a tela de ligação
                 document.getElementById('backpack-icon').style.display = 'none';
                 document.getElementById('distance-meter').classList.remove('show');
                 callScreen.classList.remove('hidden');
 
+                console.log('Tela de ligação mostrada, classes:', callScreen.className);
+
                 // Iniciar vibração de ligação recebida
                 startIncomingCallEffects();
 
                 // Configurar eventos dos botões
-                answerButton.addEventListener('click', answerCall, { once: true }); // Usar once para evitar múltiplos cliques
-                declineButton.addEventListener('click', declineCall, { once: true });
+                console.log('Configurando eventos dos botões...');
+                console.log('answerButton:', answerButton);
+                console.log('declineButton:', declineButton);
+
+                if (answerButton && declineButton) {
+                    answerButton.addEventListener('click', answerCall, { once: true }); // Usar once para evitar múltiplos cliques
+                    declineButton.addEventListener('click', declineCall, { once: true });
+                    console.log('Eventos configurados com sucesso');
+                } else {
+                    console.error('Botões não encontrados!');
+                }
             }
 
             function startIncomingCallEffects() {
