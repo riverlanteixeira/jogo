@@ -1,4 +1,5 @@
 <html>
+
 <head>
     <meta charset="utf-8">
     <title>Stranger Things AR - Caça aos Objetos</title>
@@ -387,6 +388,28 @@
 
         .collectible-ready {
             animation: collectible-pulse 2s ease-in-out infinite;
+        }
+
+        /* Animação especial para o Will - mais suave e acolhedora */
+        @keyframes will-glow {
+            0% {
+                transform: scale(1);
+                filter: brightness(1) drop-shadow(0 0 0 rgba(76, 175, 80, 0));
+            }
+
+            50% {
+                transform: scale(1.05);
+                filter: brightness(1.2) drop-shadow(0 0 15px rgba(76, 175, 80, 0.8));
+            }
+
+            100% {
+                transform: scale(1);
+                filter: brightness(1) drop-shadow(0 0 0 rgba(76, 175, 80, 0));
+            }
+        }
+
+        .will-proximity-active {
+            animation: will-glow 3s ease-in-out infinite;
         }
 
         /* Animação de destaque quando o jogador erra o clique */
@@ -976,7 +999,7 @@
         <a-entity id="demogorgon" class="enemy" gltf-model="#demogorgon-model" demogorgon-combat
             visible="false"></a-entity>
         <a-entity id="will-mundo-invertido" class="collectible" gltf-model="#will-mundo-invertido-model"
-            collectible-object visible="false"></a-entity>
+            will-proximity-detector visible="false"></a-entity>
     </a-scene>
 
 
@@ -988,7 +1011,7 @@
             <div id="progress-bar-container">
                 <div id="progress-bar"></div>
             </div>
-            <p id="loading-info">9Carregando assets...</p>
+            <p id="loading-info">1Carregando assets...</p>
 
             <button id="enter-button" class="ui-element">Entrar no Mundo Invertido</button>
         </div>
@@ -1171,6 +1194,151 @@
                 return window.currentObjectPlaced &&
                     window.currentObjectIndex < window.objectsToPlace.length &&
                     window.objectsToPlace[window.currentObjectIndex] === this.el.id;
+            }
+        });
+
+        // Componente A-Frame para detecção de proximidade do Will
+        AFRAME.registerComponent('will-proximity-detector', {
+            schema: {
+                proximityDistance: { type: 'number', default: 1.5 }, // Distância em metros para "tocar"
+                checkInterval: { type: 'number', default: 100 } // Intervalo de verificação em ms
+            },
+
+            init: function () {
+                console.log('Inicializando detector de proximidade para Will');
+
+                this.camera = null;
+                this.isActive = false;
+                this.proximityCheckInterval = null;
+                this.hasBeenCollected = false;
+
+                // Aguardar a câmera estar disponível
+                this.el.sceneEl.addEventListener('camera-set-active', (evt) => {
+                    this.camera = evt.detail.cameraEl;
+                    console.log('Câmera definida para detector de proximidade');
+                });
+
+                // Fallback para encontrar a câmera
+                setTimeout(() => {
+                    if (!this.camera) {
+                        this.camera = this.el.sceneEl.querySelector('[camera]');
+                        console.log('Câmera encontrada via fallback:', this.camera);
+                    }
+                }, 1000);
+            },
+
+            startProximityDetection: function () {
+                if (this.isActive || this.hasBeenCollected) return;
+
+                console.log('Iniciando detecção de proximidade para Will');
+                this.isActive = true;
+
+                // Adicionar animação especial do Will
+                this.el.classList.add('will-proximity-active');
+
+                // Mostrar instrução especial para o Will
+                if (window.showToast) {
+                    window.showToast('Aproxime-se fisicamente do Will para salvá-lo!', 'info', 5000);
+                }
+
+                // Iniciar verificação periódica de proximidade
+                this.proximityCheckInterval = setInterval(() => {
+                    this.checkProximity();
+                }, this.data.checkInterval);
+            },
+
+            stopProximityDetection: function () {
+                console.log('Parando detecção de proximidade para Will');
+                this.isActive = false;
+
+                if (this.proximityCheckInterval) {
+                    clearInterval(this.proximityCheckInterval);
+                    this.proximityCheckInterval = null;
+                }
+            },
+
+            checkProximity: function () {
+                if (!this.camera || !this.isActive || this.hasBeenCollected) return;
+
+                // Obter posições da câmera (jogador) e do Will
+                const cameraPosition = this.camera.object3D.position;
+                const willPosition = this.el.object3D.position;
+
+                // Calcular distância 3D
+                const distance = cameraPosition.distanceTo(willPosition);
+
+                // Debug da distância (remover em produção)
+                // console.log(`Distância até Will: ${distance.toFixed(2)}m`);
+
+                // Atualizar UI de distância
+                this.updateDistanceUI(distance);
+
+                // Verificar se está próximo o suficiente para "tocar"
+                if (distance <= this.data.proximityDistance) {
+                    this.onWillTouched();
+                }
+            },
+
+            updateDistanceUI: function (distance) {
+                const distanceMeter = document.getElementById('distance-meter');
+                if (!distanceMeter) return;
+
+                const distanceText = distanceMeter.querySelector('.distance-text') ||
+                    distanceMeter.querySelector('#distance-text');
+
+                if (distanceText) {
+                    if (distance <= this.data.proximityDistance) {
+                        distanceText.innerHTML = `✋ Toque no Will para salvá-lo!`;
+                        distanceMeter.classList.add('unlocked');
+                    } else {
+                        const formattedDistance = distance > 10 ?
+                            `${distance.toFixed(0)}m` : `${distance.toFixed(1)}m`;
+                        distanceText.innerHTML = `🚶 Aproxime-se do Will: ${formattedDistance}`;
+                        distanceMeter.classList.remove('unlocked');
+                    }
+                }
+            },
+
+            onWillTouched: function () {
+                if (this.hasBeenCollected) return;
+
+                console.log('Will foi tocado! Iniciando coleta...');
+                this.hasBeenCollected = true;
+                this.stopProximityDetection();
+
+                // Vibração de sucesso
+                if (navigator.vibrate) {
+                    navigator.vibrate([200, 100, 200, 100, 200]);
+                }
+
+                // Toast de sucesso
+                if (window.showToast) {
+                    window.showToast('🎉 Você salvou Will! Missão completa!', 'success', 4000);
+                }
+
+                // Coletar o Will
+                if (window.collectItem) {
+                    setTimeout(() => {
+                        window.collectItem('will-mundo-invertido');
+                    }, 1000);
+                } else {
+                    console.error('Função collectItem não encontrada');
+                }
+            },
+
+            // Função chamada quando o Will se torna visível
+            onVisible: function () {
+                if (this.isCurrentWill()) {
+                    setTimeout(() => {
+                        this.startProximityDetection();
+                    }, 500);
+                }
+            },
+
+            isCurrentWill: function () {
+                return window.currentObjectPlaced &&
+                    window.currentObjectIndex < window.objectsToPlace.length &&
+                    window.objectsToPlace[window.currentObjectIndex] === 'will-mundo-invertido';
             }
         });
 
@@ -1670,7 +1838,7 @@
                     if (currentObjectPlaced && currentObjectIndex < objectsToPlace.length) {
                         const currentObjectId = objectsToPlace[currentObjectIndex];
 
-                        // Tratamento especial para o Demogorgon
+                        // Tratamento especial para diferentes objetos
                         if (currentObjectId === 'demogorgon') {
                             const demogorgonEntity = document.getElementById('demogorgon');
                             const demogorgonComponent = demogorgonEntity.components['demogorgon-combat'];
@@ -1680,6 +1848,16 @@
                                 showToast('Debug: Demogorgon derrotado!', 'success');
                             } else {
                                 showToast('Debug: Demogorgon não está ativo para combate', 'warning');
+                            }
+                        } else if (currentObjectId === 'will-mundo-invertido') {
+                            const willEntity = document.getElementById('will-mundo-invertido');
+                            const willComponent = willEntity.components['will-proximity-detector'];
+                            if (willComponent && willComponent.isActive) {
+                                // Simular toque no Will
+                                willComponent.onWillTouched();
+                                showToast('Debug: Will tocado!', 'success');
+                            } else {
+                                showToast('Debug: Will não está ativo para detecção', 'warning');
                             }
                         } else {
                             // Coletar item normalmente
@@ -1914,7 +2092,7 @@
                 window.currentObjectPlaced = true;
                 console.log('Objeto colocado:', objectId);
 
-                // Tratamento especial para o Demogorgon
+                // Tratamento especial para diferentes objetos
                 if (objectId === 'demogorgon') {
                     // Iniciar combate manualmente
                     const objectName = getObjectName(objectId);
@@ -1927,6 +2105,20 @@
                             demogorgonComponent.startCombat();
                         } else {
                             console.error('Componente demogorgon-combat não encontrado');
+                        }
+                    }, 500);
+                } else if (objectId === 'will-mundo-invertido') {
+                    // Tratamento especial para o Will - detecção de proximidade
+                    const objectName = getObjectName(objectId);
+                    showToast(`${objectName} encontrado! Aproxime-se dele para salvá-lo.`, 'info', 4000);
+
+                    // Iniciar detecção de proximidade após um pequeno delay
+                    setTimeout(() => {
+                        const willComponent = objectEntity.components['will-proximity-detector'];
+                        if (willComponent) {
+                            willComponent.startProximityDetection();
+                        } else {
+                            console.error('Componente will-proximity-detector não encontrado');
                         }
                     }, 500);
                 } else {
