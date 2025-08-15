@@ -989,7 +989,7 @@
             <div id="progress-bar-container">
                 <div id="progress-bar"></div>
             </div>
-            <p id="loading-info">8Carregando assets...</p>
+            <p id="loading-info">9Carregando assets...</p>
 
             <button id="enter-button" class="ui-element">Entrar no Mundo Invertido</button>
         </div>
@@ -1109,17 +1109,7 @@
             Coletar Item (Debug)
         </button>
 
-        <!-- Botão de debug para combate -->
-        <button id="debug-combat"
-            style="position: fixed; bottom: 80px; right: 20px; z-index: 30; padding: 10px; background: #ff6600; color: white; border: none; border-radius: 5px; display: none;">
-            Testar Combate
-        </button>
 
-        <!-- Botão de debug para ligação do Dustin -->
-        <button id="debug-dustin-call"
-            style="position: fixed; bottom: 140px; right: 20px; z-index: 30; padding: 10px; background: #00ff00; color: black; border: none; border-radius: 5px; display: none;">
-            Testar Ligação
-        </button>
     </div>
 
     <script>
@@ -1676,7 +1666,6 @@
 
             function setupDebugButton() {
                 const debugButton = document.getElementById('debug-collect');
-                const debugCombatButton = document.getElementById('debug-combat');
 
                 debugButton.addEventListener('click', () => {
                     if (currentObjectPlaced && currentObjectIndex < objectsToPlace.length) {
@@ -1700,45 +1689,8 @@
                     }
                 });
 
-                // Botão de debug para combate
-                debugCombatButton.addEventListener('click', () => {
-                    const demogorgonEntity = document.getElementById('demogorgon');
-                    const demogorgonComponent = demogorgonEntity.components['demogorgon-combat'];
-
-                    if (demogorgonComponent) {
-                        if (!demogorgonComponent.data.isActive) {
-                            // Forçar início do combate
-                            demogorgonComponent.startCombat();
-                            showToast('Debug: Combate iniciado manualmente!', 'success');
-                        } else {
-                            // Simular ataque
-                            demogorgonComponent.takeDamage(25);
-                            showToast('Debug: Ataque simulado!', 'success');
-                        }
-                    } else {
-                        showToast('Debug: Componente não encontrado', 'warning');
-                    }
-                });
-
-                // Botão de debug para ligação do Dustin
-                const debugDustinButton = document.getElementById('debug-dustin-call');
-                debugDustinButton.addEventListener('click', () => {
-                    const currentObjectId = objectsToPlace[currentObjectIndex];
-                    console.log('Debug: Testando ligação do Dustin para:', currentObjectId);
-
-                    if (dustinAudios[currentObjectId]) {
-                        showDustinCall(currentObjectId);
-                        showToast(`Debug: Ligação iniciada para ${currentObjectId}`, 'success');
-                    } else {
-                        showToast('Debug: Nenhum áudio encontrado para este item', 'warning');
-                    }
-                });
-
                 setInterval(() => {
-                    const currentObjectId = objectsToPlace[currentObjectIndex];
                     debugButton.style.display = (currentObjectPlaced && currentObjectIndex < objectsToPlace.length) ? 'block' : 'none';
-                    debugCombatButton.style.display = (currentObjectId === 'demogorgon' && currentObjectPlaced) ? 'block' : 'none';
-                    debugDustinButton.style.display = (currentObjectPlaced && currentObjectIndex < objectsToPlace.length) ? 'block' : 'none';
                 }, 1000);
             }
 
