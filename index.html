@@ -959,7 +959,7 @@
             <div id="progress-bar-container">
                 <div id="progress-bar"></div>
             </div>
-            <p id="loading-info">2Carregando assets...</p>
+            <p id="loading-info">3Carregando assets...</p>
 
             <button id="enter-button" class="ui-element">Entrar no Mundo Invertido</button>
         </div>
@@ -1321,36 +1321,48 @@
 
             function showDustinCall(missionKey = 'walkie-talkie') {
                 currentMissionAudio = missionKey;
-                console.log('Mostrando ligação do Dustin para missão:', missionKey);
+                console.log('=== INICIANDO LIGAÇÃO DO DUSTIN ===');
+                console.log('Missão:', missionKey);
+                console.log('dustinAudios disponível:', !!dustinAudios);
+                console.log('dustinAudios[missionKey]:', dustinAudios ? dustinAudios[missionKey] : 'dustinAudios não definido');
                 console.log('callScreen element:', callScreen);
+                console.log('answerButton element:', answerButton);
+                console.log('declineButton element:', declineButton);
 
                 if (!callScreen) {
-                    console.error('callScreen não encontrado!');
+                    console.error('ERRO: callScreen não encontrado!');
+                    return;
+                }
+
+                if (!answerButton || !declineButton) {
+                    console.error('ERRO: Botões não encontrados!');
+                    console.error('answerButton:', answerButton);
+                    console.error('declineButton:', declineButton);
                     return;
                 }
 
                 // Esconder a UI do jogo e mostrar a tela de ligação
-                document.getElementById('backpack-icon').style.display = 'none';
-                document.getElementById('distance-meter').classList.remove('show');
+                const backpackIcon = document.getElementById('backpack-icon');
+                const distanceMeter = document.getElementById('distance-meter');
+                
+                if (backpackIcon) backpackIcon.style.display = 'none';
+                if (distanceMeter) distanceMeter.classList.remove('show');
+                
                 callScreen.classList.remove('hidden');
-
                 console.log('Tela de ligação mostrada, classes:', callScreen.className);
 
                 // Iniciar vibração de ligação recebida
                 startIncomingCallEffects();
 
-                // Configurar eventos dos botões
-                console.log('Configurando eventos dos botões...');
-                console.log('answerButton:', answerButton);
-                console.log('declineButton:', declineButton);
-
-                if (answerButton && declineButton) {
-                    answerButton.addEventListener('click', answerCall, { once: true }); // Usar once para evitar múltiplos cliques
-                    declineButton.addEventListener('click', declineCall, { once: true });
-                    console.log('Eventos configurados com sucesso');
-                } else {
-                    console.error('Botões não encontrados!');
-                }
+                // Configurar eventos dos botões (remover listeners antigos primeiro)
+                answerButton.removeEventListener('click', answerCall);
+                declineButton.removeEventListener('click', declineCall);
+                
+                answerButton.addEventListener('click', answerCall, { once: true });
+                declineButton.addEventListener('click', declineCall, { once: true });
+                
+                console.log('Eventos dos botões configurados com sucesso');
+                console.log('=== LIGAÇÃO CONFIGURADA ===');
             }
 
             function startIncomingCallEffects() {
@@ -1984,13 +1996,22 @@
                 updateBackpackContent();
 
                 // Sistema de ligações progressivas do Dustin
-                if (dustinAudios[id]) {
+                console.log('=== VERIFICANDO LIGAÇÃO DO DUSTIN ===');
+                console.log('Item coletado:', id);
+                console.log('dustinAudios existe:', !!dustinAudios);
+                console.log('dustinAudios[id]:', dustinAudios ? dustinAudios[id] : 'dustinAudios não definido');
+                console.log('callScreen existe:', !!callScreen);
+                console.log('answerButton existe:', !!answerButton);
+                
+                if (dustinAudios && dustinAudios[id]) {
                     console.log('Iniciando ligação do Dustin para item:', id);
                     // Delay de 3 segundos para dar tempo do jogador ver o item sendo coletado
                     setTimeout(() => {
+                        console.log('Executando showDustinCall após delay...');
                         showDustinCall(id);
                     }, 3000);
                 } else {
+                    console.log('Sem áudio para este item, preparando próximo objeto...');
                     prepareForNextObject();
                 }
             }
