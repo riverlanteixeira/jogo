@@ -1,4 +1,5 @@
 <html>
+
 <head>
     <meta charset="utf-8">
     <title>Stranger Things AR - Caça aos Objetos</title>
@@ -988,7 +989,7 @@
             <div id="progress-bar-container">
                 <div id="progress-bar"></div>
             </div>
-            <p id="loading-info">7Carregando assets...</p>
+            <p id="loading-info">8Carregando assets...</p>
 
             <button id="enter-button" class="ui-element">Entrar no Mundo Invertido</button>
         </div>
@@ -1112,6 +1113,12 @@
         <button id="debug-combat"
             style="position: fixed; bottom: 80px; right: 20px; z-index: 30; padding: 10px; background: #ff6600; color: white; border: none; border-radius: 5px; display: none;">
             Testar Combate
+        </button>
+
+        <!-- Botão de debug para ligação do Dustin -->
+        <button id="debug-dustin-call"
+            style="position: fixed; bottom: 140px; right: 20px; z-index: 30; padding: 10px; background: #00ff00; color: black; border: none; border-radius: 5px; display: none;">
+            Testar Ligação
         </button>
     </div>
 
@@ -1240,6 +1247,9 @@
                 'will-mundo-invertido': 'assets/audio/dustin-missao-7-completa.mp3'
             };
 
+            // Tornar disponível globalmente
+            window.dustinAudios = dustinAudios;
+
             // Sistema de carregamento real de assets
             let totalAssets = 0;
             let loadedAssets = 0;
@@ -1320,6 +1330,9 @@
                 answerButton.addEventListener('click', answerCall, { once: true }); // Usar once para evitar múltiplos cliques
                 declineButton.addEventListener('click', declineCall, { once: true });
             }
+
+            // Tornar função disponível globalmente
+            window.showDustinCall = showDustinCall;
 
             function startIncomingCallEffects() {
                 const vibrationPattern = [500, 300, 500, 1000];
@@ -1707,10 +1720,25 @@
                     }
                 });
 
+                // Botão de debug para ligação do Dustin
+                const debugDustinButton = document.getElementById('debug-dustin-call');
+                debugDustinButton.addEventListener('click', () => {
+                    const currentObjectId = objectsToPlace[currentObjectIndex];
+                    console.log('Debug: Testando ligação do Dustin para:', currentObjectId);
+
+                    if (dustinAudios[currentObjectId]) {
+                        showDustinCall(currentObjectId);
+                        showToast(`Debug: Ligação iniciada para ${currentObjectId}`, 'success');
+                    } else {
+                        showToast('Debug: Nenhum áudio encontrado para este item', 'warning');
+                    }
+                });
+
                 setInterval(() => {
                     const currentObjectId = objectsToPlace[currentObjectIndex];
                     debugButton.style.display = (currentObjectPlaced && currentObjectIndex < objectsToPlace.length) ? 'block' : 'none';
                     debugCombatButton.style.display = (currentObjectId === 'demogorgon' && currentObjectPlaced) ? 'block' : 'none';
+                    debugDustinButton.style.display = (currentObjectPlaced && currentObjectIndex < objectsToPlace.length) ? 'block' : 'none';
                 }, 1000);
             }
 
@@ -1997,13 +2025,19 @@
                 updateBackpackContent();
 
                 // Sistema de ligações progressivas do Dustin
+                console.log('collectItem chamada para:', id);
+                console.log('dustinAudios disponível:', dustinAudios);
+                console.log('dustinAudios[id]:', dustinAudios[id]);
+
                 if (dustinAudios[id]) {
                     console.log('Iniciando ligação do Dustin para item:', id);
                     // Delay de 3 segundos para dar tempo do jogador ver o item sendo coletado
                     setTimeout(() => {
+                        console.log('Executando showDustinCall para:', id);
                         showDustinCall(id);
                     }, 3000);
                 } else {
+                    console.log('Nenhum áudio encontrado para:', id, '- preparando próximo objeto');
                     prepareForNextObject();
                 }
             }
@@ -2161,10 +2195,14 @@
             },
 
             collectDemogorgon: function () {
+                console.log('collectDemogorgon chamada - iniciando coleta do Demogorgon');
+
                 // Marcar como coletado no sistema principal
                 if (window.collectItem) {
+                    console.log('Chamando window.collectItem para demogorgon');
                     window.collectItem('demogorgon');
                 } else {
+                    console.log('window.collectItem não encontrada, usando fallback');
                     // Fallback manual
                     const collectibles = window.collectibles || {};
                     collectibles['demogorgon'] = true;
@@ -2180,6 +2218,16 @@
                     const foundCount = Object.values(collectibles).filter(Boolean).length;
                     const badge = document.getElementById('backpack-badge');
                     if (badge) badge.textContent = `${foundCount}/7`;
+
+                    // Chamar ligação do Dustin manualmente no fallback
+                    if (window.dustinAudios && window.dustinAudios['demogorgon']) {
+                        console.log('Iniciando ligação do Dustin para demogorgon (fallback)');
+                        setTimeout(() => {
+                            if (window.showDustinCall) {
+                                window.showDustinCall('demogorgon');
+                            }
+                        }, 3000);
+                    }
                 }
 
                 // Esconder o Demogorgon
