@@ -723,6 +723,210 @@
                 opacity: 1;
             }
         }
+
+        /* Sistema de Combate do Demogorgon */
+        #combat-ui {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 15;
+            background: rgba(0, 0, 0, 0.9);
+            color: #fff;
+            padding: 15px 25px;
+            border-radius: 15px;
+            border: 2px solid #e72626;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            display: none;
+            min-width: 300px;
+            text-align: center;
+            backdrop-filter: blur(15px);
+        }
+
+        #combat-ui.show {
+            display: block;
+        }
+
+        #enemy-name {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #e72626;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        #health-bar-container {
+            width: 100%;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+            border: 1px solid #666;
+        }
+
+        #health-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4CAF50 0%, #8BC34A 50%, #CDDC39 100%);
+            width: 100%;
+            transition: width 0.5s ease;
+            position: relative;
+        }
+
+        #health-bar.low {
+            background: linear-gradient(90deg, #f44336 0%, #ff5722 100%);
+        }
+
+        #health-bar.critical {
+            background: linear-gradient(90deg, #d32f2f 0%, #f44336 100%);
+            animation: health-critical 0.5s infinite alternate;
+        }
+
+        #health-text {
+            font-size: 0.9em;
+            color: #ccc;
+            margin-bottom: 5px;
+        }
+
+        #combat-instructions {
+            font-size: 0.8em;
+            color: #aaa;
+            margin-top: 5px;
+        }
+
+        @keyframes health-critical {
+            0% {
+                opacity: 0.7;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        /* Animações de combate */
+        @keyframes demogorgon-hit {
+            0% {
+                transform: scale(1);
+                filter: brightness(1);
+            }
+
+            25% {
+                transform: scale(0.9);
+                filter: brightness(2) hue-rotate(0deg);
+            }
+
+            50% {
+                transform: scale(1.1);
+                filter: brightness(1.5) hue-rotate(180deg);
+            }
+
+            75% {
+                transform: scale(0.95);
+                filter: brightness(1.8) hue-rotate(90deg);
+            }
+
+            100% {
+                transform: scale(1);
+                filter: brightness(1);
+            }
+        }
+
+        .demogorgon-hit {
+            animation: demogorgon-hit 0.6s ease-in-out;
+        }
+
+        @keyframes demogorgon-death {
+            0% {
+                transform: scale(1) rotateY(0deg);
+                opacity: 1;
+                filter: brightness(1);
+            }
+
+            25% {
+                transform: scale(1.2) rotateY(90deg);
+                opacity: 0.8;
+                filter: brightness(2) hue-rotate(180deg);
+            }
+
+            50% {
+                transform: scale(0.8) rotateY(180deg);
+                opacity: 0.6;
+                filter: brightness(0.5) hue-rotate(270deg);
+            }
+
+            75% {
+                transform: scale(0.4) rotateY(270deg);
+                opacity: 0.3;
+                filter: brightness(0.2);
+            }
+
+            100% {
+                transform: scale(0) rotateY(360deg);
+                opacity: 0;
+                filter: brightness(0);
+            }
+        }
+
+        .demogorgon-death {
+            animation: demogorgon-death 2s ease-in-out forwards;
+        }
+
+        @keyframes demogorgon-spawn {
+            0% {
+                transform: scale(0) rotateY(0deg);
+                opacity: 0;
+                filter: brightness(0);
+            }
+
+            25% {
+                transform: scale(0.4) rotateY(90deg);
+                opacity: 0.3;
+                filter: brightness(0.5) hue-rotate(180deg);
+            }
+
+            50% {
+                transform: scale(0.8) rotateY(180deg);
+                opacity: 0.6;
+                filter: brightness(1.5) hue-rotate(90deg);
+            }
+
+            75% {
+                transform: scale(1.2) rotateY(270deg);
+                opacity: 0.8;
+                filter: brightness(2);
+            }
+
+            100% {
+                transform: scale(1) rotateY(360deg);
+                opacity: 1;
+                filter: brightness(1);
+            }
+        }
+
+        .demogorgon-spawn {
+            animation: demogorgon-spawn 1.5s ease-out;
+        }
+
+        /* Efeito de mira no Demogorgon */
+        @keyframes demogorgon-targeted {
+
+            0%,
+            100% {
+                transform: scale(1);
+                filter: brightness(1) drop-shadow(0 0 0 rgba(231, 38, 38, 0));
+            }
+
+            50% {
+                transform: scale(1.05);
+                filter: brightness(1.3) drop-shadow(0 0 20px rgba(231, 38, 38, 0.8));
+            }
+        }
+
+        .demogorgon-targeted {
+            animation: demogorgon-targeted 1s ease-in-out infinite;
+        }
     </style>
 </head>
 
@@ -770,7 +974,7 @@
             visible="false"></a-entity>
         <a-entity id="walkie-talkie" class="collectible" gltf-model="#walkie-talkie-model" collectible-object
             visible="false"></a-entity>
-        <a-entity id="demogorgon" class="collectible" gltf-model="#demogorgon-model" collectible-object
+        <a-entity id="demogorgon" class="enemy" gltf-model="#demogorgon-model" demogorgon-combat
             visible="false"></a-entity>
         <a-entity id="will-mundo-invertido" class="collectible" gltf-model="#will-mundo-invertido-model"
             collectible-object visible="false"></a-entity>
@@ -785,7 +989,7 @@
             <div id="progress-bar-container">
                 <div id="progress-bar"></div>
             </div>
-            <p id="loading-info">4Carregando assets...</p>
+            <p id="loading-info">6Carregando assets...</p>
 
             <button id="enter-button" class="ui-element">Entrar no Mundo Invertido</button>
         </div>
@@ -888,6 +1092,16 @@
 
         <!-- Container de notificações toast -->
         <div id="toast-container"></div>
+
+        <!-- UI de Combate do Demogorgon -->
+        <div id="combat-ui" class="ui-element">
+            <div id="enemy-name">👹 Demogorgon</div>
+            <div id="health-text">Vida: <span id="health-value">100</span>/100</div>
+            <div id="health-bar-container">
+                <div id="health-bar"></div>
+            </div>
+            <div id="combat-instructions">Mire e clique no Demogorgon para atacar!</div>
+        </div>
 
         <!-- Botão de debug temporário -->
         <button id="debug-collect"
@@ -999,13 +1213,13 @@
 
             // Coordenadas dos objetos (latitude, longitude)
             const objectLocations = [
-                { lat: -27.639820466982767, lng: -48.66781802715769, name: 'Walkie-Talkie' },
-                { lat: -27.639820466982767, lng: -48.66781802715769, name: 'Bicicleta' },
-                { lat: -27.63969696356364, lng: -48.66761417136559, name: 'Bússola' },
-                { lat: -27.639820466982767, lng: -48.66781802715769, name: 'Taco de Baseball' },
-                { lat: -27.639820466982767, lng: -48.66781802715769, name: 'Machado' },
-                { lat: -27.639820466982767, lng: -48.66781802715769, name: 'Demogorgon' },
-                { lat: -27.639820466982767, lng: -48.66781802715769, name: 'Will (Mundo Invertido)' }
+                { lat: -27.630919163200247, lng: -48.67972703471731, name: 'Walkie-Talkie' },
+                { lat: -27.630919163200247, lng: -48.67972703471731, name: 'Bicicleta' },
+                { lat: -27.630919163200247, lng: -48.67972703471731, name: 'Bússola' },
+                { lat: -27.630919163200247, lng: -48.67972703471731, name: 'Taco de Baseball' },
+                { lat: -27.630919163200247, lng: -48.67972703471731, name: 'Machado' },
+                { lat: -27.630919163200247, lng: -48.67972703471731, name: 'Demogorgon' },
+                { lat: -27.630919163200247, lng: -48.67972703471731, name: 'Will (Mundo Invertido)' }
             ];
 
             const PROXIMITY_RADIUS = 10; // 10 metros
@@ -1740,6 +1954,243 @@
                 document.getElementById('backpack-icon').style.display = 'none';
                 document.getElementById('backpack-modal').style.display = 'none';
                 victoryScreen.classList.remove('hidden');
+            }
+        });
+
+        // Componente A-Frame para combate do Demogorgon
+        AFRAME.registerComponent('demogorgon-combat', {
+            schema: {
+                maxHealth: { type: 'number', default: 100 },
+                damage: { type: 'number', default: 25 },
+                isActive: { type: 'boolean', default: false }
+            },
+
+            init: function () {
+                console.log('Inicializando sistema de combate do Demogorgon');
+
+                this.health = this.data.maxHealth;
+                this.isDead = false;
+                this.isTargeted = false;
+
+                // Elementos da UI
+                this.combatUI = document.getElementById('combat-ui');
+                this.healthBar = document.getElementById('health-bar');
+                this.healthValue = document.getElementById('health-value');
+
+                // Eventos de combate
+                this.el.addEventListener('click', this.onAttack.bind(this));
+                this.el.addEventListener('touchstart', this.onAttack.bind(this));
+                this.el.addEventListener('mousedown', this.onAttack.bind(this));
+
+                // Eventos de mira
+                this.el.addEventListener('mouseenter', this.onTargetEnter.bind(this));
+                this.el.addEventListener('mouseleave', this.onTargetLeave.bind(this));
+                this.el.addEventListener('raycaster-intersected', this.onTargetEnter.bind(this));
+                this.el.addEventListener('raycaster-intersected-cleared', this.onTargetLeave.bind(this));
+
+                // Escutar quando o Demogorgon é colocado na cena
+                this.el.addEventListener('object3dset', () => {
+                    if (this.el.getAttribute('visible')) {
+                        this.startCombat();
+                    }
+                });
+            },
+
+            startCombat: function () {
+                console.log('Iniciando combate com o Demogorgon!');
+
+                this.data.isActive = true;
+                this.health = this.data.maxHealth;
+                this.isDead = false;
+
+                // Mostrar UI de combate
+                this.combatUI.classList.add('show');
+                this.updateHealthUI();
+
+                // Animação de spawn
+                this.el.classList.add('demogorgon-spawn');
+
+                // Remover animação após completar
+                setTimeout(() => {
+                    this.el.classList.remove('demogorgon-spawn');
+                }, 1500);
+
+                // Toast de início de combate
+                this.showCombatToast('👹 Demogorgon apareceu! Prepare-se para a batalha!', 'warning');
+
+                // Vibração de alerta
+                this.vibrateDevice([200, 100, 200, 100, 200]);
+            },
+
+            onAttack: function (event) {
+                if (!this.data.isActive || this.isDead) return;
+
+                event.stopPropagation();
+                event.preventDefault();
+
+                console.log('Atacando o Demogorgon!');
+
+                // Aplicar dano
+                this.takeDamage(this.data.damage);
+
+                // Animação de hit
+                this.el.classList.add('demogorgon-hit');
+                setTimeout(() => {
+                    this.el.classList.remove('demogorgon-hit');
+                }, 600);
+
+                // Vibração de ataque
+                this.vibrateDevice([50, 30, 50]);
+
+                // Som de ataque (se disponível)
+                this.playAttackSound();
+            },
+
+            takeDamage: function (damage) {
+                this.health = Math.max(0, this.health - damage);
+                console.log(`Demogorgon recebeu ${damage} de dano. Vida restante: ${this.health}`);
+
+                this.updateHealthUI();
+
+                if (this.health <= 0) {
+                    this.die();
+                } else {
+                    // Toast de dano
+                    this.showCombatToast(`-${damage} HP`, 'success');
+                }
+            },
+
+            die: function () {
+                console.log('Demogorgon foi derrotado!');
+
+                this.isDead = true;
+                this.data.isActive = false;
+
+                // Animação de morte
+                this.el.classList.add('demogorgon-death');
+
+                // Esconder UI de combate
+                setTimeout(() => {
+                    this.combatUI.classList.remove('show');
+                }, 500);
+
+                // Toast de vitória
+                this.showCombatToast('🎉 Demogorgon derrotado! Você salvou Hawkins!', 'success');
+
+                // Vibração de vitória
+                this.vibrateDevice([100, 50, 100, 50, 100, 50, 200]);
+
+                // Marcar como coletado após animação
+                setTimeout(() => {
+                    this.collectDemogorgon();
+                }, 2000);
+            },
+
+            collectDemogorgon: function () {
+                // Marcar como coletado no sistema principal
+                if (window.collectItem) {
+                    window.collectItem('demogorgon');
+                } else {
+                    // Fallback manual
+                    const collectibles = window.collectibles || {};
+                    collectibles['demogorgon'] = true;
+
+                    const listItem = document.querySelector(`#collectibles-list li[data-item="demogorgon"]`);
+                    if (listItem) {
+                        listItem.classList.add('found');
+                        const statusIcon = listItem.querySelector('.item-status');
+                        if (statusIcon) statusIcon.innerText = '✅';
+                    }
+
+                    // Atualizar contador
+                    const foundCount = Object.values(collectibles).filter(Boolean).length;
+                    const badge = document.getElementById('backpack-badge');
+                    if (badge) badge.textContent = `${foundCount}/7`;
+                }
+
+                // Esconder o Demogorgon
+                this.el.setAttribute('visible', false);
+            },
+
+            onTargetEnter: function () {
+                if (!this.data.isActive || this.isDead) return;
+
+                console.log('Mirando no Demogorgon');
+                this.isTargeted = true;
+                this.el.classList.add('demogorgon-targeted');
+
+                // Mostrar cursor de mira
+                const cursor = document.getElementById('cursor');
+                if (cursor) {
+                    cursor.setAttribute('visible', true);
+                    cursor.setAttribute('material', 'color: #ff0000');
+                }
+
+                document.body.style.cursor = 'crosshair';
+            },
+
+            onTargetLeave: function () {
+                if (!this.data.isActive || this.isDead) return;
+
+                console.log('Saindo da mira do Demogorgon');
+                this.isTargeted = false;
+                this.el.classList.remove('demogorgon-targeted');
+
+                // Esconder cursor
+                const cursor = document.getElementById('cursor');
+                if (cursor) {
+                    cursor.setAttribute('visible', false);
+                    cursor.setAttribute('material', 'color: #e72626');
+                }
+
+                document.body.style.cursor = 'default';
+            },
+
+            updateHealthUI: function () {
+                const healthPercent = (this.health / this.data.maxHealth) * 100;
+
+                this.healthBar.style.width = `${healthPercent}%`;
+                this.healthValue.textContent = this.health;
+
+                // Mudar cor da barra baseado na vida
+                this.healthBar.classList.remove('low', 'critical');
+                if (healthPercent <= 20) {
+                    this.healthBar.classList.add('critical');
+                } else if (healthPercent <= 50) {
+                    this.healthBar.classList.add('low');
+                }
+            },
+
+            showCombatToast: function (message, type = 'info') {
+                const toastContainer = document.getElementById('toast-container');
+                if (!toastContainer) return;
+
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                toast.textContent = message;
+
+                toastContainer.appendChild(toast);
+
+                // Mostrar toast
+                setTimeout(() => toast.classList.add('show'), 100);
+
+                // Remover toast
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => toastContainer.removeChild(toast), 300);
+                }, 3000);
+            },
+
+            vibrateDevice: function (pattern) {
+                if ('vibrate' in navigator) {
+                    navigator.vibrate(pattern);
+                }
+            },
+
+            playAttackSound: function () {
+                // Placeholder para som de ataque
+                // Você pode adicionar um arquivo de áudio aqui
+                console.log('🔊 Som de ataque!');
             }
         });
     </script>
