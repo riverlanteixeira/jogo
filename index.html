@@ -956,7 +956,7 @@
                 animation__click="property: scale; startEvents: click; easing: easeInCubic; dur: 150; from: 0.1 0.1 0.1; to: 1 1 1"
                 animation__fusing="property: scale; startEvents: fusing; easing: easeInCubic; dur: 1500; from: 1 1 1; to: 0.1 0.1 0.1"
                 geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03" material="color: #e72626; shader: flat"
-                raycaster="objects: .collectible" visible="false">
+                raycaster="objects: .collectible, .enemy" visible="false">
             </a-cursor>
         </a-camera>
 
@@ -989,7 +989,7 @@
             <div id="progress-bar-container">
                 <div id="progress-bar"></div>
             </div>
-            <p id="loading-info">6Carregando assets...</p>
+            <p id="loading-info">7Carregando assets...</p>
 
             <button id="enter-button" class="ui-element">Entrar no Mundo Invertido</button>
         </div>
@@ -1107,6 +1107,12 @@
         <button id="debug-collect"
             style="position: fixed; bottom: 20px; right: 20px; z-index: 30; padding: 10px; background: #ff0000; color: white; border: none; border-radius: 5px; display: none;">
             Coletar Item (Debug)
+        </button>
+
+        <!-- Botão de debug para combate -->
+        <button id="debug-combat"
+            style="position: fixed; bottom: 80px; right: 20px; z-index: 30; padding: 10px; background: #ff6600; color: white; border: none; border-radius: 5px; display: none;">
+            Testar Combate
         </button>
     </div>
 
@@ -1658,17 +1664,54 @@
 
             function setupDebugButton() {
                 const debugButton = document.getElementById('debug-collect');
+                const debugCombatButton = document.getElementById('debug-combat');
+
                 debugButton.addEventListener('click', () => {
                     if (currentObjectPlaced && currentObjectIndex < objectsToPlace.length) {
                         const currentObjectId = objectsToPlace[currentObjectIndex];
-                        // Toast debug removido
-                        collectItem(currentObjectId);
-                    } else {
-                        // Debug toast removido
+
+                        // Tratamento especial para o Demogorgon
+                        if (currentObjectId === 'demogorgon') {
+                            const demogorgonEntity = document.getElementById('demogorgon');
+                            const demogorgonComponent = demogorgonEntity.components['demogorgon-combat'];
+                            if (demogorgonComponent && demogorgonComponent.data.isActive) {
+                                // Simular ataque ao Demogorgon
+                                demogorgonComponent.takeDamage(100); // Dano suficiente para derrotar
+                                showToast('Debug: Demogorgon derrotado!', 'success');
+                            } else {
+                                showToast('Debug: Demogorgon não está ativo para combate', 'warning');
+                            }
+                        } else {
+                            // Coletar item normalmente
+                            collectItem(currentObjectId);
+                        }
                     }
                 });
+
+                // Botão de debug para combate
+                debugCombatButton.addEventListener('click', () => {
+                    const demogorgonEntity = document.getElementById('demogorgon');
+                    const demogorgonComponent = demogorgonEntity.components['demogorgon-combat'];
+
+                    if (demogorgonComponent) {
+                        if (!demogorgonComponent.data.isActive) {
+                            // Forçar início do combate
+                            demogorgonComponent.startCombat();
+                            showToast('Debug: Combate iniciado manualmente!', 'success');
+                        } else {
+                            // Simular ataque
+                            demogorgonComponent.takeDamage(25);
+                            showToast('Debug: Ataque simulado!', 'success');
+                        }
+                    } else {
+                        showToast('Debug: Componente não encontrado', 'warning');
+                    }
+                });
+
                 setInterval(() => {
+                    const currentObjectId = objectsToPlace[currentObjectIndex];
                     debugButton.style.display = (currentObjectPlaced && currentObjectIndex < objectsToPlace.length) ? 'block' : 'none';
+                    debugCombatButton.style.display = (currentObjectId === 'demogorgon' && currentObjectPlaced) ? 'block' : 'none';
                 }, 1000);
             }
 
@@ -1889,13 +1932,30 @@
                 objectEntity.object3D.scale.set(scale, scale, scale);
 
                 objectEntity.setAttribute('visible', true);
-                objectEntity.classList.add('collectible-ready');
                 currentObjectPlaced = true;
                 window.currentObjectPlaced = true;
                 console.log('Objeto colocado:', objectId);
 
-                const objectName = getObjectName(objectId);
-                showToast(`${objectName} encontrado! Toque para coletar.`, 'success');
+                // Tratamento especial para o Demogorgon
+                if (objectId === 'demogorgon') {
+                    // Iniciar combate manualmente
+                    const objectName = getObjectName(objectId);
+                    showToast(`${objectName} apareceu! Prepare-se para a batalha!`, 'warning');
+
+                    // Iniciar combate após um pequeno delay
+                    setTimeout(() => {
+                        const demogorgonComponent = objectEntity.components['demogorgon-combat'];
+                        if (demogorgonComponent) {
+                            demogorgonComponent.startCombat();
+                        } else {
+                            console.error('Componente demogorgon-combat não encontrado');
+                        }
+                    }, 500);
+                } else {
+                    objectEntity.classList.add('collectible-ready');
+                    const objectName = getObjectName(objectId);
+                    showToast(`${objectName} encontrado! Toque para coletar.`, 'success');
+                }
                 canPlace = false;
             }
 
@@ -1971,6 +2031,7 @@
                 this.health = this.data.maxHealth;
                 this.isDead = false;
                 this.isTargeted = false;
+                this.combatStarted = false;
 
                 // Elementos da UI
                 this.combatUI = document.getElementById('combat-ui');
@@ -1988,17 +2049,31 @@
                 this.el.addEventListener('raycaster-intersected', this.onTargetEnter.bind(this));
                 this.el.addEventListener('raycaster-intersected-cleared', this.onTargetLeave.bind(this));
 
-                // Escutar quando o Demogorgon é colocado na cena
-                this.el.addEventListener('object3dset', () => {
-                    if (this.el.getAttribute('visible')) {
+                // Verificação periódica para iniciar combate quando visível
+                this.visibilityCheck = setInterval(() => {
+                    if (!this.combatStarted && this.el.getAttribute('visible') === true) {
+                        console.log('Demogorgon detectado como visível, iniciando combate...');
                         this.startCombat();
+                        clearInterval(this.visibilityCheck);
                     }
-                });
+                }, 500);
+
+                // Limpar interval após 30 segundos para evitar vazamentos
+                setTimeout(() => {
+                    if (this.visibilityCheck) {
+                        clearInterval(this.visibilityCheck);
+                    }
+                }, 30000);
             },
 
             startCombat: function () {
-                console.log('Iniciando combate com o Demogorgon!');
+                if (this.combatStarted) {
+                    console.log('Combate já foi iniciado, ignorando...');
+                    return;
+                }
 
+                console.log('Iniciando combate com o Demogorgon!');
+                this.combatStarted = true;
                 this.data.isActive = true;
                 this.health = this.data.maxHealth;
                 this.isDead = false;
