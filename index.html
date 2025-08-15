@@ -959,7 +959,7 @@
             <div id="progress-bar-container">
                 <div id="progress-bar"></div>
             </div>
-            <p id="loading-info">1Carregando assets...</p>
+            <p id="loading-info">2Carregando assets...</p>
 
             <button id="enter-button" class="ui-element">Entrar no Mundo Invertido</button>
         </div>
@@ -1041,11 +1041,16 @@
                     <div class="health-bar">
                         <div id="demogorgon-health-fill" class="health-fill demogorgon-health"></div>
                     </div>
-                    <div class="health-text" id="demogorgon-health-text">100/100</div>
+                    <div class="health-text" id="demogorgon-health-text">300/300</div>
+                </div>
+
+                <div id="combat-instructions">
+                    <p>🎯 Clique no Demogorgon para atacar!</p>
+                    <p>⏱️ Tempo: <span id="combat-timer">0s</span> | 🎯 Ataques: <span id="combat-hits-count">0</span></p>
                 </div>
             </div>
 
-            <div id="combat-result" class="hidden">
+            <div id="combat-result" class="hidden"></div>
                 <h3 id="combat-result-title"></h3>
                 <p id="combat-result-message"></p>
                 <button id="combat-continue" class="ui-element">Continuar</button>
@@ -2033,17 +2038,24 @@
             }
 
             function setupDemogorgonCombatListeners() {
+                console.log('Configurando listeners de combate...');
+                
+                // Remover listeners antigos primeiro
+                document.removeEventListener('click', handleCombatClick);
+                
                 const demogorgonEntity = document.getElementById('demogorgon');
                 if (demogorgonEntity) {
-                    // Remover listeners antigos
+                    // Remover listeners antigos do demogorgon
                     demogorgonEntity.removeEventListener('click', handleDemogorgonAttack);
-
-                    // Adicionar listener de combate
+                    
+                    // Adicionar listener direto no demogorgon
                     demogorgonEntity.addEventListener('click', handleDemogorgonAttack);
-
-                    // Também escutar cliques na tela quando Demogorgon está visível
-                    document.addEventListener('click', handleCombatClick);
+                    console.log('Listener adicionado ao Demogorgon');
                 }
+                
+                // Adicionar listener global para cliques durante o combate
+                document.addEventListener('click', handleCombatClick);
+                console.log('Listener global de combate adicionado');
             }
 
             function handleDemogorgonAttack(event) {
@@ -2075,22 +2087,34 @@
 
             function handleCombatClick(event) {
                 if (!combatActive) return;
-                if (event.target.closest('.ui-element')) return;
+                
+                // Verificar se o clique foi em um elemento da UI (exceto o botão continuar)
+                if (event.target.closest('.ui-element') && !event.target.closest('#combat-continue')) {
+                    return;
+                }
 
-                // Durante o combate, qualquer clique na área AR conta como ataque
+                console.log('Clique detectado durante combate - verificando Demogorgon...');
+                
+                // Durante o combate, qualquer clique na área AR conta como ataque ao Demogorgon
                 const demogorgonEntity = document.getElementById('demogorgon');
                 if (demogorgonEntity && demogorgonEntity.getAttribute('visible') === 'true') {
-                    console.log('Clique detectado durante combate - atacando Demogorgon');
+                    console.log('Demogorgon visível - executando ataque');
                     handleDemogorgonAttack(event);
+                } else {
+                    console.log('Demogorgon não está visível');
                 }
             }
 
             function startCombatTimer() {
+                combatStartTime = Date.now();
                 combatTimer = setInterval(() => {
                     if (!combatActive) return;
 
                     const elapsed = Math.floor((Date.now() - combatStartTime) / 1000);
-                    document.getElementById('combat-timer').innerText = elapsed + 's';
+                    const timerElement = document.getElementById('combat-timer');
+                    if (timerElement) {
+                        timerElement.innerText = elapsed + 's';
+                    }
 
                     // Combate tem limite de tempo (60 segundos)
                     if (elapsed >= 60) {
@@ -2127,7 +2151,20 @@
                 // Atualizar UI
                 updateCombatUI();
 
-                // Feedback visual de ataque recebido
+                // Verificar se jogador foi derrotado
+                if (playerHealth <= 0) {
+                    endCombat(false); // Derrota
+                    return;
+                }
+
+                // Feedback visual de ataque recebido - piscar a tela
+                const combatScreen = document.getElementById('combat-screen');
+                if (combatScreen) {
+                    combatScreen.style.background = 'rgba(231, 38, 38, 0.3)';
+                    setTimeout(() => {
+                        combatScreen.style.background = 'transparent';
+                    }, 200);
+                }
                 const statusText = document.getElementById('combat-status-text');
                 if (statusText) {
                     statusText.innerText = `💀 DEMOGORGON ATACOU! Dano: ${damage}`;
@@ -2167,15 +2204,36 @@
                 const playerHealthPercent = (playerHealth / 100) * 100;
                 const demogorgonHealthPercent = (demogorgonHealth / 300) * 100; // Vida máxima 300
 
-                document.getElementById('player-health-fill').style.width = playerHealthPercent + '%';
-                document.getElementById('demogorgon-health-fill').style.width = demogorgonHealthPercent + '%';
+                const playerHealthFill = document.getElementById('player-health-fill');
+                const demogorgonHealthFill = document.getElementById('demogorgon-health-fill');
+                
+                if (playerHealthFill) {
+                    playerHealthFill.style.width = playerHealthPercent + '%';
+                }
+                
+                if (demogorgonHealthFill) {
+                    demogorgonHealthFill.style.width = demogorgonHealthPercent + '%';
+                }
 
                 // Atualizar textos de vida
-                document.getElementById('player-health-text').innerText = `${playerHealth}/100`;
-                document.getElementById('demogorgon-health-text').innerText = `${demogorgonHealth}/300`;
+                const playerHealthText = document.getElementById('player-health-text');
+                const demogorgonHealthText = document.getElementById('demogorgon-health-text');
+                
+                if (playerHealthText) {
+                    playerHealthText.innerText = `${playerHealth}/100`;
+                }
+                
+                if (demogorgonHealthText) {
+                    demogorgonHealthText.innerText = `${demogorgonHealth}/300`;
+                }
 
-                // Atualizar estatísticas
-                document.getElementById('combat-hits-count').innerText = combatHits;
+                // Atualizar contador de ataques
+                const hitsCountElement = document.getElementById('combat-hits-count');
+                if (hitsCountElement) {
+                    hitsCountElement.innerText = combatHits;
+                }
+                
+                console.log(`UI atualizada - Jogador: ${playerHealth}/100, Demogorgon: ${demogorgonHealth}/300, Ataques: ${combatHits}`);
             }
 
             function endCombat(victory) {
