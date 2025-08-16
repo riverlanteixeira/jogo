@@ -935,7 +935,7 @@
     <a-scene id="ar-scene"
         webxr="requiredFeatures: hit-test, local-floor; optionalFeatures: dom-overlay; overlayElement: #overlay;"
         vr-mode-ui="enabled: false;"
-        renderer="logarithmicDepthBuffer: true; colorManagement: true; outputColorSpace: srgb; toneMapping: ACESFilmic; toneMappingExposure: 1.0;"
+        renderer="logarithmicDepthBuffer: true; colorManagement: true; outputColorSpace: srgb; toneMapping: NoToneMapping;"
         background="color: transparent;">
         <a-assets>
             <a-asset-item id="bike-model" src="assets/models/bicicleta-will.glb"></a-asset-item>
@@ -949,9 +949,9 @@
         </a-assets>
 
         <!-- Iluminação da Cena -->
-        <a-light type="ambient" color="#404040" intensity="0.4"></a-light>
-        <a-light type="directional" color="#ffffff" intensity="0.8" position="1 1 1"></a-light>
-        <a-light type="point" color="#ffffff" intensity="0.3" position="0 2 0"></a-light>
+        <a-light type="ambient" color="#ffffff" intensity="0.6"></a-light>
+        <a-light type="directional" color="#ffffff" intensity="0.5" position="1 1 1"></a-light>
+        <a-light type="hemisphere" color="#ffffff" groundColor="#444444" intensity="0.4"></a-light>
 
         <a-camera fov="80">
             <a-cursor id="cursor"
@@ -992,7 +992,7 @@
             <div id="progress-bar-container">
                 <div id="progress-bar"></div>
             </div>
-            <p id="loading-info">2Carregando assets...</p>
+            <p id="loading-info">3Carregando assets...</p>
 
             <button id="enter-button" class="ui-element">Entrar no Mundo Invertido</button>
         </div>
@@ -1116,27 +1116,80 @@
     </div>
 
     <script>
-        // Componente para corrigir materiais GLB
+        // Componente para corrigir materiais GLB - Versão Robusta
         AFRAME.registerComponent('gltf-material-fix', {
             init: function () {
-                this.el.addEventListener('model-loaded', () => {
-                    const mesh = this.el.getObject3D('mesh');
-                    if (mesh) {
-                        mesh.traverse((node) => {
-                            if (node.isMesh && node.material) {
-                                // Preservar as cores originais do material
-                                if (node.material.map) {
-                                    node.material.map.colorSpace = THREE.SRGBColorSpace;
+                const el = this.el;
+
+                // Múltiplas tentativas de correção
+                el.addEventListener('model-loaded', () => {
+                    console.log('Modelo carregado, aplicando correções de material para:', el.id);
+                    this.fixMaterials();
+                    // Tentar novamente após delay
+                    setTimeout(() => this.fixMaterials(), 500);
+                    setTimeout(() => this.fixMaterials(), 1500);
+                });
+
+                // Backup: tentar após delays
+                setTimeout(() => this.fixMaterials(), 2000);
+                setTimeout(() => this.fixMaterials(), 4000);
+            },
+
+            fixMaterials: function () {
+                const mesh = this.el.getObject3D('mesh');
+                if (!mesh) {
+                    return;
+                }
+
+                console.log('Aplicando correção ROBUSTA de materiais para:', this.el.id);
+
+                mesh.traverse((node) => {
+                    if (node.isMesh && node.material) {
+                        const materials = Array.isArray(node.material) ? node.material : [node.material];
+
+                        materials.forEach((material, index) => {
+                            console.log(`Corrigindo material ${index} do node ${node.name} em ${this.el.id}`);
+
+                            // FORÇA BRUTAL: Substituir por MeshLambertMaterial se necessário
+                            if (material.isMeshStandardMaterial && material.map) {
+                                const newMaterial = new THREE.MeshLambertMaterial({
+                                    map: material.map,
+                                    color: material.color || 0xffffff,
+                                    transparent: material.transparent,
+                                    opacity: material.opacity
+                                });
+
+                                if (material.map) {
+                                    newMaterial.map.colorSpace = THREE.SRGBColorSpace;
+                                    newMaterial.map.needsUpdate = true;
                                 }
-                                // Garantir que o material responda à iluminação
-                                node.material.needsUpdate = true;
-                                // Ajustar propriedades para melhor renderização
-                                if (node.material.metalness !== undefined) {
-                                    node.material.metalness = Math.min(node.material.metalness, 0.1);
+
+                                // Substituir o material
+                                if (Array.isArray(node.material)) {
+                                    node.material[index] = newMaterial;
+                                } else {
+                                    node.material = newMaterial;
                                 }
-                                if (node.material.roughness !== undefined) {
-                                    node.material.roughness = Math.max(node.material.roughness, 0.8);
+
+                                console.log('Material substituído por MeshLambertMaterial para melhor compatibilidade');
+                            } else {
+                                // Correção padrão para outros materiais
+                                if (material.map) {
+                                    material.map.colorSpace = THREE.SRGBColorSpace;
+                                    material.map.needsUpdate = true;
                                 }
+
+                                // Zerar propriedades PBR problemáticas
+                                material.metalness = 0;
+                                material.roughness = 1;
+                                material.envMapIntensity = 0;
+
+                                // Garantir cor visível
+                                if (!material.color) {
+                                    material.color = new THREE.Color(0xffffff);
+                                }
+
+                                material.needsUpdate = true;
                             }
                         });
                     }
@@ -1218,6 +1271,40 @@
             const victoryScreen = document.getElementById('victory-screen');
             const reticle = document.getElementById('reticle');
 
+
+            // Função global para forçar correção de materiais
+            function forceFixAllMaterials() {
+                console.log('Forçando correção de todos os materiais GLB...');
+                const models = ['walkie-talkie', 'will-mundo-invertido', 'bike', 'compass', 'baseball-bat', 'machado', 'demogorgon'];
+
+                models.forEach(modelId => {
+                    const entity = document.getElementById(modelId);
+                    if (entity) {
+                        const mesh = entity.getObject3D('mesh');
+                        if (mesh) {
+                            mesh.traverse((node) => {
+                                if (node.isMesh && node.material) {
+                                    const materials = Array.isArray(node.material) ? node.material : [node.material];
+                                    materials.forEach((material) => {
+                                        // Forçar cor e propriedades
+                                        if (material.map) {
+                                            material.map.colorSpace = THREE.SRGBColorSpace;
+                                            material.map.needsUpdate = true;
+                                        }
+                                        material.metalness = 0;
+                                        material.roughness = 1;
+                                        material.needsUpdate = true;
+                                        console.log(`Material corrigido para ${modelId}:`, material);
+                                    });
+                                }
+                            });
+                        }
+                    }
+                });
+            }
+
+            // Executar correção após 3 segundos
+            setTimeout(forceFixAllMaterials, 3000);
 
             const collectibles = {
                 'walkie-talkie': false,
@@ -1674,6 +1761,11 @@
             function initGame() {
                 console.log('Inicializando jogo...');
                 gameInitialized = true;
+
+                // Forçar correção de materiais ao iniciar o jogo
+                setTimeout(() => {
+                    forceFixAllMaterials();
+                }, 1000);
 
                 loadingScreen.classList.add('hidden');
                 document.getElementById('backpack-icon').style.display = 'flex';
