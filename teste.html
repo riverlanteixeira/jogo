@@ -1,118 +1,34 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt">
 <head>
-    <title>Teste - Ligação do Dustin</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visualizador de Modelo 3D</title>
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; padding: 20px; }
-        button { padding: 10px 20px; margin: 10px; font-size: 16px; }
-        #debug { background: #f0f0f0; padding: 10px; margin: 10px 0; }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden; /* Evita barras de rolagem */
+        }
+        model-viewer {
+            width: 100%;
+            height: 100%;
+            background-color: #f0f0f0;
+        }
     </style>
 </head>
 <body>
-    <h1>Teste da Ligação do Dustin</h1>
-    
-    <button onclick="testCall()">Testar Ligação</button>
-    <button onclick="checkElements()">Verificar Elementos</button>
-    
-    <div id="debug"></div>
-    
-    <!-- Elementos da ligação copiados do index.html -->
-    <div id="call-screen" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; color: white; z-index: 1000;">
-        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
-            <img src="assets/img/dustin.png" alt="Dustin" style="width: 150px; height: 150px; border-radius: 50%; margin-bottom: 20px;">
-            <h2>Dustin Henderson</h2>
-            <p id="call-status">Chamada recebida...</p>
-            <div id="call-timer" style="display: none;">00:00</div>
-            <div id="call-buttons">
-                <button id="decline-button" style="background: red; color: white; padding: 15px; margin: 10px;">Recusar</button>
-                <button id="answer-button" style="background: green; color: white; padding: 15px; margin: 10px;">Atender</button>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        // Variáveis globais
-        let callScreen, answerButton, declineButton, callTimer, callStatus;
-        let dustinAudios = {
-            'walkie-talkie': 'assets/audio/dustin-missao-1-completa.mp3'
-        };
-        
-        // Inicializar elementos
-        document.addEventListener('DOMContentLoaded', () => {
-            callScreen = document.getElementById('call-screen');
-            answerButton = document.getElementById('answer-button');
-            declineButton = document.getElementById('decline-button');
-            callTimer = document.getElementById('call-timer');
-            callStatus = document.getElementById('call-status');
-            
-            log('Elementos inicializados');
-        });
-        
-        function log(message) {
-            const debug = document.getElementById('debug');
-            debug.innerHTML += '<div>' + new Date().toLocaleTimeString() + ': ' + message + '</div>';
-            console.log(message);
-        }
-        
-        function checkElements() {
-            log('=== VERIFICAÇÃO DE ELEMENTOS ===');
-            log('callScreen: ' + (callScreen ? 'OK' : 'ERRO'));
-            log('answerButton: ' + (answerButton ? 'OK' : 'ERRO'));
-            log('declineButton: ' + (declineButton ? 'OK' : 'ERRO'));
-            log('callTimer: ' + (callTimer ? 'OK' : 'ERRO'));
-            log('callStatus: ' + (callStatus ? 'OK' : 'ERRO'));
-            log('dustinAudios: ' + JSON.stringify(dustinAudios));
-        }
-        
-        function testCall() {
-            log('=== TESTANDO LIGAÇÃO ===');
-            
-            if (!callScreen) {
-                log('ERRO: callScreen não encontrado!');
-                return;
-            }
-            
-            if (!answerButton || !declineButton) {
-                log('ERRO: Botões não encontrados!');
-                return;
-            }
-            
-            // Mostrar tela de ligação
-            callScreen.style.display = 'block';
-            log('Tela de ligação mostrada');
-            
-            // Vibrar
-            if (navigator.vibrate) {
-                navigator.vibrate([500, 300, 500]);
-                log('Vibração ativada');
-            } else {
-                log('Vibração não suportada');
-            }
-            
-            // Configurar botões
-            answerButton.onclick = () => {
-                log('Botão ATENDER clicado!');
-                callStatus.textContent = 'Chamada em andamento...';
-                document.getElementById('call-buttons').style.display = 'none';
-                callTimer.style.display = 'block';
-                
-                // Simular fim da chamada após 3 segundos
-                setTimeout(() => {
-                    log('Finalizando chamada...');
-                    callScreen.style.display = 'none';
-                    document.getElementById('call-buttons').style.display = 'block';
-                    callTimer.style.display = 'none';
-                    callStatus.textContent = 'Chamada recebida...';
-                }, 3000);
-            };
-            
-            declineButton.onclick = () => {
-                log('Botão RECUSAR clicado!');
-                callScreen.style.display = 'none';
-            };
-            
-            log('Botões configurados');
-        }
-    </script>
+    <model-viewer 
+        src="assets/models/will_byers_mundo_invertido.glb"
+        alt="Um modelo 3D do Will Byers no Mundo Invertido"
+        ar
+        ar-modes="webxr scene-viewer quick-look"
+        camera-controls
+        auto-rotate
+        shadow-intensity="1">
+    </model-viewer>
 </body>
 </html>
