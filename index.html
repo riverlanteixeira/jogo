@@ -934,8 +934,7 @@
     <!-- A-Frame Scene com Hit-Test -->
     <a-scene id="ar-scene"
         webxr="requiredFeatures: hit-test, local-floor; optionalFeatures: dom-overlay; overlayElement: #overlay;"
-        vr-mode-ui="enabled: false;"
-        renderer="logarithmicDepthBuffer: true; colorManagement: true; outputColorSpace: srgb; toneMapping: NoToneMapping;"
+        vr-mode-ui="enabled: false;" renderer="logarithmicDepthBuffer: true; colorManagement: true;"
         background="color: transparent;">
         <a-assets>
             <a-asset-item id="bike-model" src="assets/models/bicicleta-will.glb"></a-asset-item>
@@ -949,9 +948,8 @@
         </a-assets>
 
         <!-- Iluminação da Cena -->
-        <a-light type="ambient" color="#ffffff" intensity="0.6"></a-light>
-        <a-light type="directional" color="#ffffff" intensity="0.5" position="1 1 1"></a-light>
-        <a-light type="hemisphere" color="#ffffff" groundColor="#444444" intensity="0.4"></a-light>
+        <a-light type="ambient" color="#ffffff" intensity="0.5"></a-light>
+        <a-light type="directional" color="#ffffff" intensity="0.6" position="1 1 1"></a-light>
 
         <a-camera fov="80">
             <a-cursor id="cursor"
@@ -992,7 +990,7 @@
             <div id="progress-bar-container">
                 <div id="progress-bar"></div>
             </div>
-            <p id="loading-info">3Carregando assets...</p>
+            <p id="loading-info">4Carregando assets...</p>
 
             <button id="enter-button" class="ui-element">Entrar no Mundo Invertido</button>
         </div>
@@ -1117,80 +1115,71 @@
 
     <script>
         // Componente para corrigir materiais GLB - Versão Robusta
+        // Componente para debug e correção sutil de materiais
         AFRAME.registerComponent('gltf-material-fix', {
             init: function () {
                 const el = this.el;
+                console.log('Componente gltf-material-fix inicializado para:', el.id);
 
-                // Múltiplas tentativas de correção
                 el.addEventListener('model-loaded', () => {
-                    console.log('Modelo carregado, aplicando correções de material para:', el.id);
-                    this.fixMaterials();
-                    // Tentar novamente após delay
-                    setTimeout(() => this.fixMaterials(), 500);
-                    setTimeout(() => this.fixMaterials(), 1500);
-                });
+                    console.log('Modelo carregado:', el.id);
+                    this.debugMaterials();
 
-                // Backup: tentar após delays
-                setTimeout(() => this.fixMaterials(), 2000);
-                setTimeout(() => this.fixMaterials(), 4000);
+                    // Apenas para will-mundo-invertido e walkie-talkie, tentar correção sutil
+                    if (el.id === 'will-mundo-invertido' || el.id === 'walkie-talkie') {
+                        setTimeout(() => this.applySutleCorrection(), 500);
+                    }
+                });
             },
 
-            fixMaterials: function () {
+            debugMaterials: function () {
                 const mesh = this.el.getObject3D('mesh');
-                if (!mesh) {
-                    return;
+                if (mesh) {
+                    console.log(`=== Debug materiais ${this.el.id} ===`);
+                    mesh.traverse((node) => {
+                        if (node.isMesh && node.material) {
+                            const materials = Array.isArray(node.material) ? node.material : [node.material];
+                            materials.forEach((material, index) => {
+                                console.log(`Material ${index} (${node.name}):`, {
+                                    type: material.type,
+                                    hasMap: !!material.map,
+                                    color: material.color ? material.color.getHexString() : 'undefined',
+                                    metalness: material.metalness,
+                                    roughness: material.roughness,
+                                    transparent: material.transparent,
+                                    opacity: material.opacity
+                                });
+                            });
+                        }
+                    });
                 }
+            },
 
-                console.log('Aplicando correção ROBUSTA de materiais para:', this.el.id);
+            applySutleCorrection: function () {
+                const mesh = this.el.getObject3D('mesh');
+                if (!mesh) return;
+
+                console.log(`Aplicando correção sutil para ${this.el.id}`);
 
                 mesh.traverse((node) => {
                     if (node.isMesh && node.material) {
                         const materials = Array.isArray(node.material) ? node.material : [node.material];
 
-                        materials.forEach((material, index) => {
-                            console.log(`Corrigindo material ${index} do node ${node.name} em ${this.el.id}`);
-
-                            // FORÇA BRUTAL: Substituir por MeshLambertMaterial se necessário
-                            if (material.isMeshStandardMaterial && material.map) {
-                                const newMaterial = new THREE.MeshLambertMaterial({
-                                    map: material.map,
-                                    color: material.color || 0xffffff,
-                                    transparent: material.transparent,
-                                    opacity: material.opacity
-                                });
-
-                                if (material.map) {
-                                    newMaterial.map.colorSpace = THREE.SRGBColorSpace;
-                                    newMaterial.map.needsUpdate = true;
-                                }
-
-                                // Substituir o material
-                                if (Array.isArray(node.material)) {
-                                    node.material[index] = newMaterial;
-                                } else {
-                                    node.material = newMaterial;
-                                }
-
-                                console.log('Material substituído por MeshLambertMaterial para melhor compatibilidade');
-                            } else {
-                                // Correção padrão para outros materiais
-                                if (material.map) {
-                                    material.map.colorSpace = THREE.SRGBColorSpace;
-                                    material.map.needsUpdate = true;
-                                }
-
-                                // Zerar propriedades PBR problemáticas
-                                material.metalness = 0;
-                                material.roughness = 1;
-                                material.envMapIntensity = 0;
-
-                                // Garantir cor visível
-                                if (!material.color) {
-                                    material.color = new THREE.Color(0xffffff);
-                                }
-
-                                material.needsUpdate = true;
+                        materials.forEach((material) => {
+                            // Apenas ajustes muito sutis
+                            if (material.map && material.map.colorSpace !== THREE.SRGBColorSpace) {
+                                material.map.colorSpace = THREE.SRGBColorSpace;
+                                material.map.needsUpdate = true;
+                                console.log('Corrigido colorSpace da textura');
                             }
+
+                            // Se metalness for muito alta, reduzir um pouco
+                            if (material.metalness > 0.8) {
+                                material.metalness = 0.3;
+                                console.log('Reduzido metalness de', material.metalness, 'para 0.3');
+                            }
+
+                            material.needsUpdate = true;
                         });
                     }
                 });
@@ -1273,28 +1262,28 @@
 
 
             // Função global para forçar correção de materiais
-            function forceFixAllMaterials() {
-                console.log('Forçando correção de todos os materiais GLB...');
-                const models = ['walkie-talkie', 'will-mundo-invertido', 'bike', 'compass', 'baseball-bat', 'machado', 'demogorgon'];
+            // Debug: função para inspecionar materiais
+            function inspectMaterials() {
+                console.log('Inspecionando materiais dos modelos...');
+                const models = ['walkie-talkie', 'will-mundo-invertido'];
 
                 models.forEach(modelId => {
                     const entity = document.getElementById(modelId);
                     if (entity) {
                         const mesh = entity.getObject3D('mesh');
                         if (mesh) {
+                            console.log(`=== Materiais do modelo ${modelId} ===`);
                             mesh.traverse((node) => {
                                 if (node.isMesh && node.material) {
                                     const materials = Array.isArray(node.material) ? node.material : [node.material];
-                                    materials.forEach((material) => {
-                                        // Forçar cor e propriedades
-                                        if (material.map) {
-                                            material.map.colorSpace = THREE.SRGBColorSpace;
-                                            material.map.needsUpdate = true;
-                                        }
-                                        material.metalness = 0;
-                                        material.roughness = 1;
-                                        material.needsUpdate = true;
-                                        console.log(`Material corrigido para ${modelId}:`, material);
+                                    materials.forEach((material, index) => {
+                                        console.log(`Material ${index}:`, {
+                                            type: material.type,
+                                            color: material.color,
+                                            map: material.map ? 'Sim' : 'Não',
+                                            metalness: material.metalness,
+                                            roughness: material.roughness
+                                        });
                                     });
                                 }
                             });
@@ -1303,8 +1292,8 @@
                 });
             }
 
-            // Executar correção após 3 segundos
-            setTimeout(forceFixAllMaterials, 3000);
+            // Executar inspeção após 3 segundos para debug
+            setTimeout(inspectMaterials, 3000);
 
             const collectibles = {
                 'walkie-talkie': false,
@@ -1762,9 +1751,9 @@
                 console.log('Inicializando jogo...');
                 gameInitialized = true;
 
-                // Forçar correção de materiais ao iniciar o jogo
+                // Debug: inspecionar materiais ao iniciar o jogo
                 setTimeout(() => {
-                    forceFixAllMaterials();
+                    inspectMaterials();
                 }, 1000);
 
                 loadingScreen.classList.add('hidden');
