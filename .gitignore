@@ -1,0 +1,26 @@
+# Arquivos de sistema operacional
+.DS_Store
+Thumbs.db
+
+# Arquivos de IDEs e editores comuns
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Arquivos de build e temporários
+/build/
+/dist/
+/bin/
+/obj/
+*.o
+*.lo
+*.dll
+*.exe
+*.so
+
+# Logs
+logs/
+*.log
